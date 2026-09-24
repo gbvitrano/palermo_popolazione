@@ -128,10 +128,20 @@ function sumField(record, field) {
   return typeof value === 'number' ? value : 0;
 }
 
-export function aggregateTopic(records, sectionIds, topicKey, idField = 'SEZ21_ID', filterStranieri = false) {
-  const idSet = new Set(sectionIds);
-  const included = records.filter(r => idSet.has(r[idField]));
+// Selezione delle sezioni di una zona: Map SEZ21_ID -> peso (0–1], cioè la quota della
+// sezione che cade nella zona (js/dasimetria.js). Un array di id vale peso 1 per tutti
+// (inclusione per centroide).
+export function toWeightMap(selection) {
+  return selection instanceof Map ? selection : new Map(selection.map(id => [id, 1]));
+}
+
+export function aggregateTopic(records, selection, topicKey, idField = 'SEZ21_ID', filterStranieri = false) {
+  const weights = toWeightMap(selection);
+  const included = records.filter(r => weights.has(r[idField]));
+  const weightOf = r => weights.get(r[idField]);
   const topic = TOPICS[topicKey];
+  // somme pesate arrotondate all'intero: con pesi frazionari si contano persone stimate
+  const total = field => Math.round(included.reduce((sum, r) => sum + sumField(r, field) * weightOf(r), 0));
 
   let missingCount = 0;
   let totalPopulation = 0;
@@ -139,21 +149,18 @@ export function aggregateTopic(records, sectionIds, topicKey, idField = 'SEZ21_I
     if (record.P1 == null) {
       missingCount += 1;
     } else {
-      totalPopulation += record.P1;
+      totalPopulation += record.P1 * weightOf(record);
     }
   }
+  totalPopulation = Math.round(totalPopulation);
 
   const useStranieri = filterStranieri && topicKey !== 'stranieri';
 
   if (topic.chartType === 'pyramid') {
     const ageBands = (useStranieri && topic.stranieriAgeBands) || topic.ageBands;
     const labels = ageBands.map(b => b.bandLabel);
-    const maleData = ageBands.map(band =>
-      included.reduce((sum, r) => sum + sumField(r, band.male), 0)
-    );
-    const femaleData = ageBands.map(band =>
-      included.reduce((sum, r) => sum + sumField(r, band.female), 0)
-    );
+    const maleData = ageBands.map(band => total(band.male));
+    const femaleData = ageBands.map(band => total(band.female));
     return {
       labels,
       datasets: [
@@ -168,9 +175,7 @@ export function aggregateTopic(records, sectionIds, topicKey, idField = 'SEZ21_I
 
   const series = (useStranieri && topic.stranieriSeries) || topic.series;
   const labels = series.map(s => s.label);
-  const data = series.map(s =>
-    included.reduce((sum, r) => sum + sumField(r, s.field), 0)
-  );
+  const data = series.map(s => total(s.field));
 
   return {
     labels,

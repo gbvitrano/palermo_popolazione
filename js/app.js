@@ -1,4 +1,4 @@
-import { INDICATORI_JSON_URL } from './config.js';
+import { INDICATORI_JSON_URL, EDIFICI_ZONA_JSON_URL } from './config.js';
 import { MapModule } from './map.js';
 import { ProbeController } from './probe.js';
 import { PolygonController } from './polygon.js';
@@ -11,6 +11,7 @@ import { setupSheet, resetSnap, sheetInset } from './sheet.js';
 import { renderPuntoPanel, renderPuntoSkeleton, aggregateAllLevels, renderCircRanking } from './punto.js';
 import { findNearestGrigliaPoint } from './griglia.js';
 import { buildZonesCsv, buildSectionsCsv, downloadCsv } from './export.js';
+import { loadEdificiIndex, zoneWeights } from './dasimetria.js';
 
 const probeHintEl = document.getElementById('probe-hint');
 const chartPanelEl = document.getElementById('chart-panel');
@@ -49,8 +50,13 @@ const CONFINI_LABELS = { circoscrizioni: 'Circoscrizioni', quartieri: 'Quartieri
 const isDarkTheme = () => document.documentElement.getAttribute('data-theme') === 'dark';
 
 let activeTopics = new Set(['popolazione_sesso']);
-let lastSectionIds = [];
-let lastSectionIdsB = [];
+// Sezioni della zona A/B: Map SEZ21_ID -> quota della sezione nella zona (topics.js)
+let lastSectionIds = new Map();
+let lastSectionIdsB = new Map();
+// Indice edifici per i totali dasimetrici; finché non è caricato (o se manca) si
+// ripiega sull'inclusione per centroide
+let edificiIndex = null;
+let p1ById = new Map();
 let centroidIndex = [];
 let sectionsRecords = [];
 let densityMode = 'none';
@@ -167,7 +173,7 @@ function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeE
   }
 
   function render(sectionIds) {
-    if (sectionIds.length === 0) {
+    if (sectionIds.size === 0) {
       ensureSlots();
       if (chartTitleEl) {
         chartTitleEl.textContent = activeTopics.size === 1
@@ -412,7 +418,7 @@ function renderTopicButtons() {
 function renderChart() {
   // la scala comune ha senso solo con almeno due grafici da confrontare
   document.getElementById('btn-toggle-scale').classList.toggle('hidden', activeTopics.size < 2);
-  if (lastSectionIds.length > 0) chartPanelA.render(lastSectionIds);
+  if (lastSectionIds.size > 0) chartPanelA.render(lastSectionIds);
   if (compareActive) chartPanelB.render(lastSectionIdsB);
 }
 
@@ -505,6 +511,13 @@ function updatePuntoPanel(center, autoOpen = true) {
   });
 }
 
+// Quote delle sezioni nella zona: per edifici se l'indice è disponibile, altrimenti per centroide.
+function selectZone(zone) {
+  const centroidIds = filterWithinZone(centroidIndex, zone);
+  if (!edificiIndex) return new Map(centroidIds.map(id => [id, 1]));
+  return zoneWeights(edificiIndex, zone, p1ById, centroidIds);
+}
+
 function onZoneAChange(zone) {
   // in layout compatto i pannelli si aprono da soli solo alla creazione della zona
   const autoOpen = !compactMQ.matches || !zoneA;
@@ -519,14 +532,14 @@ function onZoneAChange(zone) {
   if (!zone && compareActive) setCompareActive(false);
   if (!compareActive) updatePuntoPanel(center, autoOpen);
   if (!zone) {
-    lastSectionIds = [];
+    lastSectionIds = new Map();
     hidePanel(chartPanelEl);
     if (!polygonA?.isDrawing) probeHintEl.classList.remove('hidden');
     return;
   }
   probeHintEl.classList.add('hidden');
   if (autoOpen) showPanel(chartPanelEl);
-  lastSectionIds = filterWithinZone(centroidIndex, zone);
+  lastSectionIds = selectZone(zone);
   chartPanelA.render(lastSectionIds);
   if (compareActive && zoneB) chartPanelB.render(lastSectionIdsB);
 }
@@ -535,14 +548,14 @@ function onZoneBChange(zone) {
   zoneB = zone;
   if (activeMapModule) activeMapModule.updateEdificatoSpot('B', zone);
   if (!zone) {
-    lastSectionIdsB = [];
+    lastSectionIdsB = new Map();
     compareCoordsEl.textContent = '';
-    chartPanelB.render([]);
+    chartPanelB.render(new Map());
     return;
   }
   const center = zoneCenter(zone);
   compareCoordsEl.textContent = `${center[1].toFixed(4)}° N  ${center[0].toFixed(4)}° E`;
-  lastSectionIdsB = filterWithinZone(centroidIndex, zone);
+  lastSectionIdsB = selectZone(zone);
   chartPanelB.render(lastSectionIdsB);
 }
 
@@ -721,6 +734,14 @@ async function bootstrap() {
   }
   rankStats = aggregateAllLevels(sectionsRecords);
   centroidIndex = buildCentroidIndex(sectionsRecords, 'SEZ21_ID');
+  p1ById = new Map(sectionsRecords.map(r => [r.SEZ21_ID, r.P1 ?? null]));
+  // non blocca l'avvio: all'arrivo ricalcola le zone già disegnate
+  loadEdificiIndex(EDIFICI_ZONA_JSON_URL).then(index => {
+    edificiIndex = index;
+    if (zoneA) lastSectionIds = selectZone(zoneA);
+    if (zoneB) lastSectionIdsB = selectZone(zoneB);
+    if (zoneA) renderChart();
+  }, err => console.warn('Totali per edifici non disponibili, uso i centroidi:', err));
 
   activeMapModule = mapModule;
   probeA = new ProbeController(mapModule.getMap(), (c, r) => onZoneAChange(circleZone(c, r)), { label: 'A' });

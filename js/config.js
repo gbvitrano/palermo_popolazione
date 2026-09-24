@@ -7,6 +7,7 @@ export const EDIFICATO_PMTILES_URL = 'data/edificato.pmtiles';
 export const PUNTI_10_PMTILES_URL = 'data/punti_pop_10.pmtiles';
 export const PUNTI_1_PMTILES_URL = 'data/punti_pop_1.pmtiles';
 export const PUNTI_ZOOM_SOGLIA = 14;
+export const EDIFICI_ZONA_JSON_URL = 'data/edifici_zona.json';
 export const INDICATORI_JSON_URL = 'data/sezioni_indicatori.json';
 export const ELEVAZIONE_TILES_URL = 'data/elevazione/{z}/{x}/{y}.png';
 export const TERRAIN_DEM_TILES_URL = 'data/terrain/{z}/{x}/{y}.png';

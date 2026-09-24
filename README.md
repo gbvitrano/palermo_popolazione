@@ -55,7 +55,7 @@ Il flusso ha quattro fasi:
  PREPARAZIONE (offline, una volta)          APPLICAZIONE (browser, in tempo reale)
  ─────────────────────────────────          ─────────────────────────────────────────
  ISTAT variabili ─┐                         area di analisi (cerchio / poligono)
- ISTAT sezioni ───┼─ join SEZ21_ID ─► JSON ──► selezione per centroide ──► somma dei conteggi ──► grafici, KPI, CSV
+ ISTAT sezioni ───┼─ join SEZ21_ID ─► JSON ──► quote per edifici ──► somma pesata dei conteggi ──► grafici, KPI, CSV
  confini comunali ┘   + centroidi             │
  edifici (4 fonti) ─► PMTiles                  ├─► edifici nella zona evidenziati
  HR-DTM-5m ─► griglia 50 m (MVT)               └─► punto DTM più vicino + UPL/quartiere/circoscrizione
@@ -109,8 +109,20 @@ istruzione, occupazione e abitazioni; nel centro storico coincide spesso con un 
 
 ### Selezione delle sezioni
 
-Una sezione entra nella zona se il suo **centroide** cade dentro l'area di analisi (`js/geometry.js`). Non c'è
-ripartizione proporzionale per superficie: la sezione conta per intero oppure non conta.
+Le sezioni entrano nella zona **per edifici** (interpolazione dasimetrica, `js/dasimetria.js`): ogni sezione pesa
+la quota dei suoi residenti stimati (vedi [Mappa dasimetrica e punti](#mappa-dasimetrica-e-punti)) che abita in
+edifici il cui punto interno cade nella zona, e ogni campo ISTAT della sezione è scalato per quel peso. Una sezione
+tagliata a metà dal cerchio conta quindi per la parte abitata che ricade dentro, non per intero o per niente. Si
+assume una composizione (età, cittadinanza, famiglie…) uniforme dentro la sezione.
+
+- L'indice `data/edifici_zona.json` (circa 90.000 righe, 2,5 MB; 0,5 MB compresso) si carica dopo l'avvio; finché
+  non è pronto, o se manca, si ripiega sull'inclusione per **centroide** (la sezione conta per intero oppure no).
+- Il peso è normalizzato sul totale della sezione nell'indice: una zona che contiene tutta la sezione vale 1.
+- La sezione fittizia 8888888 (senza fissa dimora) non ha edifici e non entra mai nei totali delle zone.
+- Le sezioni senza dati (`P1` nullo, tutte con 0 residenti) restano incluse per centroide, solo per il conteggio
+  "sezioni senza dati".
+
+Il test geometrico, per centroidi ed edifici:
 
 - **Cerchio** — `filterWithinRadius`: distanza geodetica *haversine* (raggio terrestre 6.371 km) fra centro e
   centroide, confrontata con il raggio.
@@ -217,13 +229,15 @@ in italiano):
 - **Totali**: una riga per voce e una colonna per zona (A, e B se il confronto è attivo). Include tipo di area,
   coordinate del centro, superficie (π·r² per il cerchio, formula di Gauss su proiezione equirettangolare locale
   per il poligono), numero di sezioni, sezioni senza dati e tutti gli argomenti aggregati (senza filtro stranieri).
-- **Sezioni**: una riga per sezione inclusa con tutti i campi ISTAT originali e la colonna `Zona`.
+- **Sezioni**: una riga per sezione inclusa con tutti i campi ISTAT originali (dell'intera sezione), la colonna
+  `Zona` e `Quota_zona`, cioè il peso con cui la sezione entra nei totali (1 = per intero).
 
 ### Limiti
 
 - I dati descrivono la popolazione residente al **2021**.
-- L'**inclusione per centroide** può sovrastimare o sottostimare le zone ai margini; le sezioni molto estese
-  (periferia, verde, porto) pesano per intero anche se l'area ne copre solo una parte.
+- I totali per edifici sono **stime**: dipendono dal modello dasimetrico (peso impronta × piani, uso sconosciuto
+  per l'85% degli edifici) e ripartiscono i campi ISTAT in proporzione ai residenti, quindi sono in genere numeri
+  non interi arrotondati.
 - Con raggi sotto i 150–200 m il risultato è sensibile a piccoli spostamenti del centro.
 - Forma e dimensione dell'area influenzano i risultati (**MAUP**, problema dell'unità areale modificabile).
 - Le **521 sezioni senza dati** rendono i totali una stima per difetto dove sono concentrate.

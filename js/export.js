@@ -1,4 +1,4 @@
-import { TOPICS, aggregateTopic } from './topics.js';
+import { TOPICS, aggregateTopic, toWeightMap } from './topics.js';
 import { zoneCenter, ringAreaSqMeters } from './geometry.js';
 
 // Separatore ';' e virgola decimale: formato letto correttamente da Excel/LibreOffice in locale italiano.
@@ -34,7 +34,7 @@ function zoneRows(records, zone, sectionIds) {
     ['Zona', 'Centro latitudine', decimal(lat, 6)],
     ['Zona', 'Centro longitudine', decimal(lon, 6)],
     ['Zona', 'Superficie (km²)', decimal(zoneAreaKmq(zone), 3)],
-    ['Zona', 'Sezioni censuarie', sectionIds.length],
+    ['Zona', 'Sezioni censuarie', toWeightMap(sectionIds).size],
     ['Zona', 'Sezioni senza dati', base.missingCount],
     ['Zona', 'Popolazione totale', base.totalPopulation]
   ];
@@ -64,12 +64,14 @@ export function buildZonesCsv(records, zones) {
 export function buildSectionsCsv(records, zones) {
   const byId = new Map(records.map(r => [r.SEZ21_ID, r]));
   const fields = records.length ? Object.keys(records[0]) : [];
-  const lines = [['Zona', ...fields]];
+  // Quota_zona: frazione dei residenti della sezione che abita in edifici dentro la zona
+  // (1 = sezione intera); i campi ISTAT restano quelli grezzi dell'intera sezione
+  const lines = [['Zona', 'Quota_zona', ...fields]];
   for (const { name, sectionIds } of zones) {
-    for (const id of sectionIds) {
+    for (const [id, weight] of toWeightMap(sectionIds)) {
       const record = byId.get(id);
       if (!record) continue;
-      lines.push([name, ...fields.map(f => {
+      lines.push([name, decimal(weight, 3), ...fields.map(f => {
         const v = record[f];
         return typeof v === 'number' && !Number.isInteger(v) ? String(v).replace('.', ',') : v;
       })]);
