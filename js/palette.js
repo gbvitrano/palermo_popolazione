@@ -39,11 +39,13 @@ export const HILLSHADE_COLORS = {
 const DENSITY_RAMPS = {
   light: {
     popolazione: [[0, '#8fa3c9'], [50, '#e0a93b'], [150, '#d9602b'], [400, '#a4243b']],
-    edifici: [[0, '#8fa3c9'], [25, '#e0a93b'], [50, '#d9602b'], [75, '#a4243b'], [100, '#6e1530']]
+    edifici: [[0, '#8fa3c9'], [25, '#e0a93b'], [50, '#d9602b'], [75, '#a4243b'], [100, '#6e1530']],
+    dasimetrica: [[0, '#8fa3c9'], [100, '#e0a93b'], [250, '#d9602b'], [500, '#a4243b'], [1000, '#6e1530']]
   },
   dark: {
     popolazione: [[0, '#5a6f9e'], [50, '#e9c46a'], [150, '#f08a3e'], [400, '#ef4f5a']],
-    edifici: [[0, '#5a6f9e'], [25, '#e9c46a'], [50, '#f08a3e'], [75, '#ef4f5a'], [100, '#d62f5b']]
+    edifici: [[0, '#5a6f9e'], [25, '#e9c46a'], [50, '#f08a3e'], [75, '#ef4f5a'], [100, '#d62f5b']],
+    dasimetrica: [[0, '#5a6f9e'], [100, '#e9c46a'], [250, '#f08a3e'], [500, '#ef4f5a'], [1000, '#d62f5b']]
   }
 };
 
@@ -52,7 +54,8 @@ export const EDIFICATO_NEUTRAL = '#8a94a8';
 // Etichette di legenda per gli stop delle rampe (stesso ordine degli stop).
 const DENSITY_LABELS = {
   popolazione: ['0', '50', '150', '400+'],
-  edifici: ['0%', '25%', '50%', '75%', '100%']
+  edifici: ['0%', '25%', '50%', '75%', '100%'],
+  dasimetrica: ['0', '100', '250', '500', '1000+']
 };
 
 export function densityStops(mode, isDark) {
@@ -61,6 +64,15 @@ export function densityStops(mode, isDark) {
 
 export function densityLegendStops(mode, isDark) {
   return densityStops(mode, isDark).map(([, color], i) => ({ value: DENSITY_LABELS[mode][i], color }));
+}
+
+// ── Dot density (scripts/dasimetrica.py) ──
+// Blu/arancio: coppia distinguibile anche con deficit rosso-verde. Gli italiani
+// sono il 96%: tinta fredda e discreta; gli stranieri, rari, la tinta calda che emerge.
+export function puntiColors(isDark) {
+  return isDark
+    ? { italiani: '#9fb3e0', stranieri: '#ffb000' }
+    : { italiani: '#2f4278', stranieri: '#e07a00' };
 }
 
 // ── Sezioni censuarie ──

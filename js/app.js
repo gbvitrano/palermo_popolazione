@@ -5,7 +5,7 @@ import { PolygonController } from './polygon.js';
 import { buildCentroidIndex, filterWithinZone, zoneBBox, zoneCenter, ringAreaSqMeters } from './geometry.js';
 import { TOPICS, aggregateTopic } from './topics.js';
 import { ChartController, applyChartTheme, exportChartPng } from './charts.js';
-import { densityStops, densityLegendStops, confiniStyle, sezioniColors, ELEVATION_STOPS } from './palette.js';
+import { densityStops, densityLegendStops, confiniStyle, sezioniColors, ELEVATION_STOPS, EDIFICATO_NEUTRAL, puntiColors } from './palette.js';
 import { setupAriaSync, setupTablist } from './a11y.js';
 import { setupSheet, resetSnap, sheetInset } from './sheet.js';
 import { renderPuntoPanel, renderPuntoSkeleton, aggregateAllLevels, renderCircRanking } from './punto.js';
@@ -59,6 +59,7 @@ let activeMapModule = null;
 let scaleMode = false;
 let spotActive = false;
 let elevazioneVisible = false;
+let puntiVisible = false;
 let compareActive = false;
 let probeA = null;
 let probeB = null;
@@ -262,6 +263,12 @@ function offsetEastMeters(center, meters) {
   return [lon + dLon, lat];
 }
 
+const DENSITY_TITLES = {
+  popolazione: 'Densità popolazione (ab/ha)',
+  edifici: 'Copertura edifici (%)',
+  dasimetrica: 'Residenti stimati per ettaro di impronta'
+};
+
 // Rampa continua (interpolate lineare in map.js) → barra a gradiente con gli
 // stop nella stessa posizione proporzionale che hanno sulla mappa.
 function gradientLegendHTML(mode) {
@@ -279,12 +286,15 @@ function renderLegend() {
   legendContentEl.innerHTML = '';
 
   if (densityMode !== 'none') {
-    const isEdifici = densityMode === 'edifici';
     const title = document.createElement('div');
     title.className = 'panel-subheader';
-    title.textContent = isEdifici ? 'Copertura edifici (%)' : 'Densità popolazione (ab/ha)';
+    title.textContent = DENSITY_TITLES[densityMode];
     legendContentEl.appendChild(title);
     legendContentEl.insertAdjacentHTML('beforeend', gradientLegendHTML(densityMode));
+    if (densityMode === 'dasimetrica') {
+      legendContentEl.insertAdjacentHTML('beforeend',
+        `<div class="legend-row"><span class="legend-swatch" style="background:${EDIFICATO_NEUTRAL}"></span><span>Nessun residente stimato</span></div>`);
+    }
   } else if (spotActive) {
     const title = document.createElement('div');
     title.className = 'panel-subheader';
@@ -307,6 +317,18 @@ function renderLegend() {
     }
   }
 
+  if (puntiVisible) {
+    const title = document.createElement('div');
+    title.className = 'panel-subheader';
+    title.textContent = 'Residenti (1 punto = 10, da zoom 14 = 1)';
+    legendContentEl.appendChild(title);
+    const colors = puntiColors(isDarkTheme());
+    for (const [key, label] of [['italiani', 'Italiani'], ['stranieri', 'Stranieri']]) {
+      legendContentEl.insertAdjacentHTML('beforeend',
+        `<div class="legend-row"><span class="legend-swatch legend-dot" style="background:${colors[key]}"></span><span>${label}</span></div>`);
+    }
+  }
+
   if (elevazioneVisible) {
     const title = document.createElement('div');
     title.className = 'panel-subheader';
@@ -320,7 +342,7 @@ function renderLegend() {
     }
   }
 
-  legendPanelEl.classList.toggle('hidden', densityMode === 'none' && confiniActiveLevels.size === 0 && !spotActive && !elevazioneVisible);
+  legendPanelEl.classList.toggle('hidden', densityMode === 'none' && confiniActiveLevels.size === 0 && !spotActive && !elevazioneVisible && !puntiVisible);
 }
 
 function renderConfiniButtons(mapModule) {
@@ -721,11 +743,12 @@ async function bootstrap() {
   btnCompareEl.addEventListener('click', () => setCompareActive(!compareActive));
   btnExportCsvEl.addEventListener('click', () => exportCsv('totali', buildZonesCsv));
   btnExportSezioniCsvEl.addEventListener('click', () => exportCsv('sezioni', buildSectionsCsv));
-  // Interruttori: click sul pulsante attivo lo spegne (→ 'none'); popolazione ed edifici
-  // colorano lo stesso layer, quindi accenderne uno spegne l'altro.
+  // Interruttori: click sul pulsante attivo lo spegne (→ 'none'); le modalità
+  // colorano lo stesso layer, quindi accenderne una spegne le altre.
   const densityButtons = {
     popolazione: document.getElementById('btn-density-popolazione'),
-    edifici: document.getElementById('btn-density-edifici')
+    edifici: document.getElementById('btn-density-edifici'),
+    dasimetrica: document.getElementById('btn-density-dasimetrica')
   };
   for (const [mode, btn] of Object.entries(densityButtons)) {
     btn.addEventListener('click', () => {
@@ -744,6 +767,14 @@ async function bootstrap() {
   });
 
   setupMapToolbar(mapModule);
+
+  const btnTogglePunti = document.getElementById('btn-toggle-punti');
+  btnTogglePunti.addEventListener('click', () => {
+    puntiVisible = !puntiVisible;
+    mapModule.setPuntiVisible(puntiVisible);
+    btnTogglePunti.classList.toggle('active', puntiVisible);
+    renderLegend();
+  });
 
   const btnToggleElevazione = document.getElementById('btn-toggle-elevazione');
   btnToggleElevazione.addEventListener('click', () => {

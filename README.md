@@ -156,6 +156,39 @@ di MapLibre):
 Dentro la zona di analisi gli edifici mostrano sempre la densità di popolazione. Un edificio è interno se il suo
 centroide (media dei vertici) cade nella zona; lo stato è applicato con `setFeatureState`, senza ricaricare le tile.
 
+### Mappa dasimetrica e punti
+
+`scripts/dasimetrica.py` ridistribuisce i residenti di ogni sezione (`P1`) sugli edifici il cui punto interno
+cade nella sezione, in proporzione a **impronta × piani × coefficiente d'uso**:
+
+- piani = `altezza` ÷ 3 m arrotondato, minimo 1; le impronte con altezza 0 (piatte, invisibili in mappa) non
+  ricevono residenti;
+- coefficiente d'uso da `occupancy`: residenziale e sconosciuto 1, misto 0,5, commercio, industria, scuole, uffici,
+  servizi e agricolo 0;
+- esclusi gli edifici sotto 20 m² o sotto 2,5 m di altezza (tettoie, box);
+- se nessun edificio della sezione ha peso, si usa la superficie lorda di tutti i suoi edifici visibili;
+- le sezioni abitate senza edifici utili (11, 212 residenti: confini che tagliano parchi o piazze, come
+  Castello a Mare) cedono i residenti agli edifici residenziali entro 100 m (poi 250 m) dal loro confine;
+- lo stesso vale per le sezioni con meno di 10 m² di superficie lorda per abitante (36 sezioni, densità
+  impossibile: mancano edifici nel dataset). In tutto sono ricollocati circa 5.800 residenti (0,9%);
+- la **sezione fittizia 8888888** (517 residenti, 55 stranieri) raccoglie gli iscritti in anagrafe a un
+  indirizzo fittizio, cioè persone senza tetto o senza fissa dimora. Il suo poligono in Villa Garibaldi è
+  simbolico: è esclusa da dasimetrica e punti, che quindi rappresentano 634.922 residenti.
+
+Ne derivano `pop_stim` (residenti stimati) e `dens_das` (residenti per ettaro di impronta) in `edificato.pmtiles`,
+e due file di punti collocati a caso (seed fisso) dentro le impronte: `punti_pop_10.pmtiles` (**1 punto = 10
+residenti**, zoom 10–13) e `punti_pop_1.pmtiles` (**1 punto = 1 residente**, da zoom 14). I punti sono ripartiti
+tra gli edifici col metodo dei resti maggiori, così il totale di ogni sezione è rispettato. Ogni punto cade dentro
+un edificio visibile.
+
+Ogni punto porta `straniero` (0/1). Per sezione i punti stranieri sono `ST1` (a 1:10 con arrotondamento
+stocastico, corretto in media); **quali** punti lo siano è casuale, perché il censimento non dice in quale edificio
+della sezione vivono. La composizione per sezione è un dato, la posizione del singolo punto no. Rigenerazione: `python3 scripts/dasimetrica.py &&
+scripts/dasimetrica_tiles.sh`.
+
+La stima è modellata: l'85% degli edifici ha uso sconosciuto e conta come residenziale, quindi negozi e uffici
+senza classe ricevono residenti.
+
 ### Classifiche territoriali
 
 `aggregateByField` (`js/punto.js`) somma `P1` e `ST1` per 8 circoscrizioni, 25 quartieri e 55 UPL; gli italiani
@@ -194,7 +227,8 @@ in italiano):
 - Con raggi sotto i 150–200 m il risultato è sensibile a piccoli spostamenti del centro.
 - Forma e dimensione dell'area influenzano i risultati (**MAUP**, problema dell'unità areale modificabile).
 - Le **521 sezioni senza dati** rendono i totali una stima per difetto dove sono concentrate.
-- Densità e copertura sono valori di **sezione**: tutti gli edifici della stessa sezione hanno lo stesso colore.
+- Densità e copertura sono valori di **sezione**: tutti gli edifici della stessa sezione hanno lo stesso colore
+  (la modalità **Dasimetrica** li differenzia, ma resta una stima).
 - L'edificato fonde fonti di anni diversi: forme e altezze sono indicative.
 - Il pannello DTM riporta il punto di griglia più vicino, non una statistica zonale.
 
@@ -240,7 +274,9 @@ data/                   file serviti al browser
   sezioni_indicatori.json         indicatori delle 3.600 sezioni
   geo_sezioni_2021.pmtiles        geometrie delle sezioni
   confini_amministrativi.pmtiles  circoscrizioni, quartieri, UPL
-  edificato.pmtiles               edifici con altezza, densità, copertura
+  edificato.pmtiles               edifici con altezza, densità, copertura, residenti stimati
+  punti_pop_10.pmtiles            dot density 1:10 (zoom 10–13), italiani/stranieri
+  punti_pop_1.pmtiles             dot density 1:1 (zoom 14+), italiani/stranieri
   griglia_pbf/                    griglia DTM 50 m (MVT)
   elevazione/                     raster di elevazione (TMS)
   terrain/                        rilievo in codifica Terrarium

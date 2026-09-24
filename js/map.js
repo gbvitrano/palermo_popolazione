@@ -1,16 +1,21 @@
-import { MAP_STYLE_URL, MAP_STYLE_URL_DARK, PMTILES_URL, CONFINI_PMTILES_URL, EDIFICATO_PMTILES_URL, ELEVAZIONE_TILES_URL, TERRAIN_DEM_TILES_URL } from './config.js';
+import { MAP_STYLE_URL, MAP_STYLE_URL_DARK, PMTILES_URL, CONFINI_PMTILES_URL, EDIFICATO_PMTILES_URL, PUNTI_10_PMTILES_URL, PUNTI_1_PMTILES_URL, PUNTI_ZOOM_SOGLIA, ELEVAZIONE_TILES_URL, TERRAIN_DEM_TILES_URL } from './config.js';
 import { polygonCentroid, zoneBBox, zoneContains } from './geometry.js';
-import { densityStops, EDIFICATO_NEUTRAL, HILLSHADE_COLORS, sezioniColors, CONFINI_LEVEL_KEYS, confiniStyle } from './palette.js';
+import { densityStops, EDIFICATO_NEUTRAL, HILLSHADE_COLORS, sezioniColors, CONFINI_LEVEL_KEYS, confiniStyle, puntiColors } from './palette.js';
 
 const MAP_HOME = { center: [13.3526, 38.1364], zoom: 11, pitch: 0, bearing: 0 };
 const MAP_HOME_3D = { center: [13.3453, 38.13658], zoom: 12.22, pitch: 68, bearing: -90.4 };
 const SATELLITE_TILES = ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
 
-// mode = 'none' | 'popolazione' | 'edifici'. Gli edifici dentro uno spot
+// mode = 'none' | 'popolazione' | 'edifici' | 'dasimetrica'. Gli edifici dentro uno spot
 // mostrano sempre la densità di popolazione, qualunque sia la modalità attiva.
+const DENSITY_PROPS = { popolazione: 'dens_pop_ha', edifici: 'COP_EDIF_PCT', dasimetrica: 'dens_das' };
+
 function densityExpression(mode, isDark) {
-  const prop = mode === 'edifici' ? 'COP_EDIF_PCT' : 'dens_pop_ha';
-  return ['interpolate', ['linear'], ['coalesce', ['get', prop], 0], ...densityStops(mode, isDark).flat()];
+  const ramp = ['interpolate', ['linear'], ['coalesce', ['get', DENSITY_PROPS[mode]], 0], ...densityStops(mode, isDark).flat()];
+  // dasimetrica: gli edifici a cui non è stato assegnato nessun residente
+  // (non residenziali, tettoie) restano neutri invece di prendere il primo colore della rampa
+  if (mode !== 'dasimetrica') return ramp;
+  return ['case', ['>', ['coalesce', ['get', 'pop_stim'], 0], 0], ramp, EDIFICATO_NEUTRAL];
 }
 
 function buildEdificatoColorExpression(mode, isDark) {
@@ -21,6 +26,12 @@ function buildEdificatoColorExpression(mode, isDark) {
     mode === 'none' ? EDIFICATO_NEUTRAL : densityExpression(mode, isDark)
   ];
 }
+
+// [id sorgente/layer, url, intervallo di zoom, raggio]
+const PUNTI_LAYERS = [
+  ['punti-10', PUNTI_10_PMTILES_URL, { maxzoom: PUNTI_ZOOM_SOGLIA }, ['interpolate', ['linear'], ['zoom'], 11, 0.6, 13, 1.4]],
+  ['punti-1', PUNTI_1_PMTILES_URL, { minzoom: PUNTI_ZOOM_SOGLIA }, ['interpolate', ['linear'], ['zoom'], 14, 0.7, 16, 1.6, 18, 3]]
+];
 
 export class MapModule {
   constructor(containerId) {
@@ -37,6 +48,7 @@ export class MapModule {
     this.baseStyleLayerIds = [];
     this.is3D = false;
     this.elevazioneVisible = false;
+    this.puntiVisible = false;
     this.isDarkTheme = false;
   }
 
@@ -162,6 +174,26 @@ export class MapModule {
           }
         }, 'sezioni-border');
 
+        const colors = puntiColors(this.isDarkTheme);
+        for (const [id, url, zoomRange, radius] of PUNTI_LAYERS) {
+          this.map.addSource(id, { type: 'vector', url: `pmtiles://${url}` });
+          this.map.addLayer({
+            id,
+            type: 'circle',
+            source: id,
+            'source-layer': 'punti',
+            ...zoomRange,
+            // stranieri sopra: sono pochi e sparirebbero sotto gli italiani
+            layout: { visibility: 'none', 'circle-sort-key': ['get', 'straniero'] },
+            paint: {
+              'circle-color': ['case', ['==', ['get', 'straniero'], 1], colors.stranieri, colors.italiani],
+              'circle-radius': radius,
+              'circle-opacity': 0.85,
+              'circle-pitch-alignment': 'map'
+            }
+          });
+        }
+
         this.map.addSource('confini', { type: 'vector', url: `pmtiles://${CONFINI_PMTILES_URL}` });
         // fill invisibile sempre attivo: serve solo per queryRenderedFeatures (Quartiere/UPL/Circoscrizione dello spot)
         this.map.addLayer({
@@ -230,6 +262,7 @@ export class MapModule {
     }
 
     this.map.setLayoutProperty('elevazione-raster', 'visibility', this.elevazioneVisible ? 'visible' : 'none');
+    this._applyPuntiVisibility();
 
     this.map.setTerrain(this.is3D ? { source: 'terrain-dem', exaggeration: 1.5 } : null);
     this.map.setLayoutProperty('hillshade-layer', 'visibility', this.is3D ? 'visible' : 'none');
@@ -302,6 +335,17 @@ export class MapModule {
     this.elevazioneVisible = visible;
     this.map.setLayoutProperty('elevazione-raster', 'visibility', visible ? 'visible' : 'none');
     if (visible) this.map.moveLayer('elevazione-raster');
+  }
+
+  setPuntiVisible(visible) {
+    this.puntiVisible = visible;
+    this._applyPuntiVisibility();
+  }
+
+  _applyPuntiVisibility() {
+    for (const [id] of PUNTI_LAYERS) {
+      this.map.setLayoutProperty(id, 'visibility', this.puntiVisible ? 'visible' : 'none');
+    }
   }
 
   getLuogoAt(lngLat) {

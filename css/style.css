@@ -2842,3 +2842,10 @@ button.active {
     transform: none;
   }
 }
+
+/* marcatore circolare per la legenda dei punti (dot density) */
+.legend-swatch.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
