@@ -82,7 +82,7 @@ const kpiTotals = { A: null, B: null };
 
 function describeZone(zone) {
   if (!zone) return '';
-  if (zone.type === 'circle') return `Cerchio · raggio ${Math.round(zone.radiusMeters)} m`;
+  if (zone.type === 'circle') return `Area circolare · raggio ${Math.round(zone.radiusMeters)} m`;
   const kmq = ringAreaSqMeters(zone.ring) / 1e6;
   return `Poligono · ${kmq.toLocaleString('it-IT', { maximumFractionDigits: 2 })} km²`;
 }

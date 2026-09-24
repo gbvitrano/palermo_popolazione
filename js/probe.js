@@ -111,7 +111,7 @@ export class ProbeController {
   _createHandles() {
     const centerEl = document.createElement('div');
     centerEl.className = 'probe-handle probe-handle-center';
-    centerEl.title = 'Trascina per spostare il cerchio';
+    centerEl.title = "Trascina per spostare l'area";
     if (this.label) {
       centerEl.classList.add('probe-handle-labeled');
       centerEl.textContent = this.label;

@@ -131,7 +131,7 @@
         <section class="info-section">
           <h3>Cosa mostra</h3>
           <p>
-            Per l'area selezionata (cerchio a raggio variabile o poligono) aggrega le sezioni censuarie coinvolte
+            Per l'area selezionata (circolare a raggio variabile o poligonale) aggrega le sezioni censuarie coinvolte
             e mostra popolazione residente, composizione per sesso ed età, cittadinanza italiana e straniera,
             istruzione, occupazione e abitazioni. È possibile confrontare due zone (A/B), collocarle nella
             classifica di circoscrizioni, quartieri e UPL ed esportare i risultati in CSV.
@@ -198,7 +198,7 @@
         <section class="info-section">
           <h3>Come si forma la zona</h3>
           <p>
-            Una sezione entra nella zona di analisi se il suo <strong>centroide</strong> cade dentro il cerchio
+            Una sezione entra nella zona di analisi se il suo <strong>centroide</strong> cade dentro l'area circolare
             (distanza geodetica dal centro ≤ raggio) o dentro il poligono disegnato. Non c'è ripartizione
             proporzionale per area: una sezione conta per intero oppure non conta. Con raggi piccoli
             (sotto i 150–200 m) il risultato dipende quindi molto dalla posizione esatta del centro.
@@ -253,7 +253,7 @@
           <p>
             I dati fotografano la situazione al 2021. L'inclusione per centroide può sovra o sotto-stimare le zone
             ai margini, e le sezioni molto estese (periferia, aree verdi, porto) pesano più del territorio
-            effettivamente coperto dal cerchio. I risultati sono stime a fini esplorativi e divulgativi.
+            effettivamente coperto dall'area di analisi. I risultati sono stime a fini esplorativi e divulgativi.
           </p>
         </section>
       </div>
@@ -262,8 +262,8 @@
           <section class="guide-card">
             <div class="guide-step">1</div>
             <h3>Scegli un punto</h3>
-            <p>Clicca sulla mappa: compare il <strong>cerchio A</strong> (raggio 250 m). Trascina la maniglia
-              centrale per spostarlo e quella sul bordo per cambiare il raggio. I grafici si aggiornano mentre trascini.</p>
+            <p>Clicca sulla mappa: compare l'<strong>area A</strong> (raggio 250 m). Trascina la maniglia
+              centrale per spostarla e quella sul bordo per cambiare il raggio. I grafici si aggiornano mentre trascini.</p>
           </section>
           <section class="guide-card">
             <div class="guide-step">2</div>
@@ -348,7 +348,7 @@
             </svg>
           </button>
           <span class="tools-sep" aria-hidden="true"></span>
-          <button id="btn-draw-polygon" class="icon-btn" title="Disegna un poligono di analisi (sostituisce il cerchio)" aria-label="Disegna un poligono di analisi (sostituisce il cerchio)">
+          <button id="btn-draw-polygon" class="icon-btn" title="Disegna un poligono di analisi (sostituisce l'area circolare)" aria-label="Disegna un poligono di analisi (sostituisce l'area circolare)">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">
               <path d="M5 7 12 3.5 20 9 17 19.5 6 18z" stroke-dasharray="3 2"/>
               <circle cx="5" cy="7" r="1.6" fill="currentColor"/><circle cx="12" cy="3.5" r="1.6" fill="currentColor"/><circle cx="20" cy="9" r="1.6" fill="currentColor"/><circle cx="17" cy="19.5" r="1.6" fill="currentColor"/><circle cx="6" cy="18" r="1.6" fill="currentColor"/>

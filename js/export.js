@@ -14,7 +14,7 @@ function decimal(value, digits) {
 }
 
 function zoneDescription(zone) {
-  if (zone.type === 'circle') return `Cerchio, raggio ${Math.round(zone.radiusMeters)} m`;
+  if (zone.type === 'circle') return `Area circolare, raggio ${Math.round(zone.radiusMeters)} m`;
   return `Poligono, ${zone.ring.length} vertici`;
 }
 
