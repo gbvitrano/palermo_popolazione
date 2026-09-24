@@ -901,6 +901,170 @@ html, body {
   font-weight: 800;
 }
 
+/* Guida: schede del percorso rapido come link alle sezioni */
+a.guide-card {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+a.guide-card:hover,
+a.guide-card:focus-visible {
+  border-color: var(--brand-500);
+  transform: translateY(-1px);
+}
+
+.guide-lead {
+  margin: 0 0 var(--space-4);
+  font-size: var(--fs-md);
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.guide-lead strong {
+  color: var(--text-1);
+}
+
+/* Guida: sezioni dettagliate con schermate */
+.guide-section {
+  padding-top: var(--space-5);
+  margin-top: var(--space-5);
+  border-top: 1px solid var(--border);
+  scroll-margin-top: var(--space-3);
+}
+
+.guide-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.guide-section h3 .guide-step {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.guide-section p {
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-md);
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.guide-section strong {
+  color: var(--text-1);
+}
+
+.guide-list {
+  margin: 0 0 var(--space-3);
+  padding-left: 1.2em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--text-2);
+}
+
+.guide-list--num {
+  padding-left: 1.4em;
+}
+
+.guide-list li::marker {
+  color: var(--brand-500);
+  font-weight: 700;
+}
+
+.guide-note {
+  padding: 8px 12px;
+  border-left: 3px solid var(--brand-500);
+  background: var(--surface-2);
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  font-size: var(--fs-sm) !important;
+}
+
+/* Gallerie della Guida: due soli formati, così le righe restano allineate.
+   --wide = viste mappa 16:10 (2 per riga), --tall = pannelli 3:4 (3 per riga). */
+.guide-gallery {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.guide-gallery--wide {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.guide-gallery--tall {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.guide-fig {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.guide-fig--full {
+  grid-column: 1 / -1;
+}
+
+.guide-fig a {
+  display: block;
+  cursor: zoom-in;
+  border-radius: var(--radius-l);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 10px var(--shadow-color);
+  background: var(--surface-2);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.guide-fig a:hover,
+.guide-fig a:focus-visible {
+  border-color: var(--brand-500);
+  box-shadow: 0 4px 16px var(--shadow-color);
+}
+
+.guide-fig img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  object-position: top center;
+}
+
+.guide-gallery--wide img {
+  aspect-ratio: 16 / 10;
+}
+
+.guide-gallery--tall img {
+  aspect-ratio: 3 / 4;
+}
+
+.guide-fig figcaption {
+  margin-top: 8px;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+/* riga Strumenti: immagine piccola a dimensione reale, senza cornice */
+.guide-fig--inline {
+  width: min(350px, 100%);
+  margin-bottom: var(--space-3);
+}
+
+.guide-fig--inline img {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+}
+
 .info-section strong,
 .guide-card strong {
   color: var(--text-1);
@@ -963,6 +1127,206 @@ html, body {
 .info-section p.info-disclaimer {
   font-size: var(--fs-sm);
   font-style: italic;
+}
+
+/* Scheda QGIS headless (portata da palermo_dtm_5m, colori a token) */
+.qh-page {
+  max-width: 760px;
+}
+
+.qh-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: var(--space-4) 18px;
+  margin-bottom: 18px;
+  background: var(--highlight-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+}
+
+.qh-hero-icon {
+  flex-shrink: 0;
+  color: var(--brand-500);
+}
+
+.qh-hero-title {
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  color: var(--text-1);
+}
+
+.qh-hero-sub {
+  margin-top: 3px;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.qh-hero-author {
+  margin-top: 5px;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+
+.qh-hero-author a {
+  color: var(--text-link);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.qh-hero-author a:hover,
+.qh-hero-author a:focus-visible {
+  text-decoration: underline;
+}
+
+.qh-handle {
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.qh-section + .qh-section {
+  margin-top: 18px;
+}
+
+.qh-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--space-2);
+  padding-bottom: 6px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.qh-section-title svg {
+  flex-shrink: 0;
+  color: var(--brand-500);
+}
+
+.qh-text {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-md);
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.qh-page strong {
+  color: var(--text-1);
+}
+
+/* Comandi lunghi: vanno a capo invece di allargare il pannello */
+.qh-page code {
+  overflow-wrap: anywhere;
+}
+
+.qh-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.qh-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.qh-list li svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--brand-500);
+}
+
+.qh-note {
+  margin: var(--space-2) 0 0;
+  padding: 7px 10px;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-2);
+  background: var(--brand-050);
+  border-left: 3px solid var(--brand-500);
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+}
+
+.qh-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: 10px;
+}
+
+.qh-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+/* Stesso stile dei numeri delle schede Guida (.guide-step) */
+.qh-step-n {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--brand-500);
+  color: var(--on-brand);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+}
+
+.qh-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.qh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 8px 16px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  color: #fff;
+  background: var(--brand-grad);
+  border-radius: var(--radius-m);
+  transition: filter var(--dur) var(--ease-out);
+}
+
+.qh-btn:hover {
+  filter: brightness(1.1);
+}
+
+.qh-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Rosso YouTube: colore del marchio, uguale in entrambi i temi */
+.qh-btn-yt {
+  background: #c00;
 }
 
 /* A pannello aperto nascondi gli elementi in basso che finirebbero sotto */

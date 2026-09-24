@@ -118,6 +118,7 @@
         <button type="button" class="info-tab" id="info-tab-metodologia" data-tab="metodologia" role="tab" aria-controls="info-pane-metodologia">Metodologia</button>
         <button type="button" class="info-tab" id="info-tab-guida" data-tab="guida" role="tab" aria-controls="info-pane-guida">Guida</button>
         <button type="button" class="info-tab active" id="info-tab-info" data-tab="info" role="tab" aria-controls="info-pane-info">Info</button>
+        <button type="button" class="info-tab" id="info-tab-qgis" data-tab="qgis" role="tab" aria-controls="info-pane-qgis">QGIS headless</button>
       </div>
       <div class="info-pane active" id="info-pane-info" data-tab="info" role="tabpanel" aria-labelledby="info-tab-info" tabindex="0">
         <section class="info-section">
@@ -174,6 +175,20 @@
                title="Claude AI — assistente sviluppato da Anthropic">Claude AI (Anthropic)</a>,
             che ha affiancato le scelte architetturali, l'ottimizzazione del codice e lo sviluppo delle
             funzionalità di visualizzazione geospaziale.
+          </p>
+        </section>
+        <section class="info-section">
+          <h3>Ispirazione</h3>
+          <p>
+            Questa mappa è stata ispirata dal lavoro di
+            <a class="info-link" href="https://www.linkedin.com/in/mohammadvh/" target="_blank" rel="noopener noreferrer"
+               title="Profilo LinkedIn di Mohammad VahidiBorji">Mohammad VahidiBorji</a>,
+            in particolare dai suoi post su
+            <a class="info-link" href="https://www.linkedin.com/posts/mohammadvh_urbanplanning-gis-spatialanalysis-ugcPost-7508205899027570688-JxMv/" target="_blank" rel="noopener noreferrer"
+               title="Post LinkedIn di Mohammad VahidiBorji — urban planning, GIS e analisi spaziale">analisi spaziale e pianificazione urbana</a>
+            e sul
+            <a class="info-link" href="https://www.linkedin.com/posts/mohammadvh_webgis-mapbox-urbanabrplanning-ugcPost-7410781911205212160-3EzO/" target="_blank" rel="noopener noreferrer"
+               title="Post LinkedIn di Mohammad VahidiBorji — WebGIS con Mapbox">WebGIS per la pianificazione urbana</a>.
           </p>
         </section>
         <section class="info-section">
@@ -258,59 +273,351 @@
         </section>
       </div>
       <div class="info-pane" id="info-pane-guida" data-tab="guida" role="tabpanel" aria-labelledby="info-tab-guida" tabindex="0">
-        <div class="guide-grid">
-          <section class="guide-card">
-            <div class="guide-step">1</div>
-            <h3>Scegli un punto</h3>
-            <p>Clicca sulla mappa: compare l'<strong>area A</strong> (raggio 250 m). Trascina la maniglia
-              centrale per spostarla e quella sul bordo per cambiare il raggio. I grafici si aggiornano mentre trascini.</p>
-          </section>
-          <section class="guide-card">
-            <div class="guide-step">2</div>
-            <h3>Oppure disegna un'area</h3>
-            <p>Con <em>Poligono</em> negli Strumenti clicca i vertici sulla mappa e chiudi con un doppio clic o
-              cliccando sul primo vertice. <kbd>Esc</kbd> annulla il disegno.</p>
-          </section>
-          <section class="guide-card">
-            <div class="guide-step">3</div>
-            <h3>Scegli cosa analizzare</h3>
-            <p>Nel pannello di sinistra attiva uno o più <strong>Argomenti</strong>: popolazione e sesso, piramide
-              d'età, stranieri, nazionalità, istruzione, occupazione, famiglie, abitazioni.</p>
-          </section>
-          <section class="guide-card">
-            <div class="guide-step">4</div>
-            <h3>Confronta due zone</h3>
-            <p><em>Confronta</em> aggiunge una <strong>zona B</strong> (in arancio) accanto alla A (in ciano).
-              I dati di B compaiono nel pannello di destra, sotto quelli della zona A.</p>
-          </section>
-          <section class="guide-card">
-            <div class="guide-step">5</div>
+        <p class="guide-lead">
+          In tre mosse: <strong>clicca un punto</strong> della città, <strong>scegli gli argomenti</strong> nel pannello
+          di sinistra, <strong>leggi i risultati</strong> nei grafici e nel pannello di destra. Qui sotto trovi il percorso
+          rapido e, più in basso, ogni funzione spiegata passo per passo con le schermate dell'applicazione.
+        </p>
+
+        <nav class="guide-grid" aria-label="Percorso rapido">
+          <a class="guide-card" href="#guida-area">
+            <span class="guide-step">1</span>
+            <h3>Attiva l'area</h3>
+            <p>Un clic sulla mappa crea l'<strong>area A</strong> (raggio 250 m).</p>
+          </a>
+          <a class="guide-card" href="#guida-poligono">
+            <span class="guide-step">2</span>
+            <h3>Oppure disegna</h3>
+            <p>Un <strong>poligono</strong> libero per isolati, piazze, quartieri.</p>
+          </a>
+          <a class="guide-card" href="#guida-argomenti">
+            <span class="guide-step">3</span>
+            <h3>Scegli gli argomenti</h3>
+            <p>Età, stranieri, istruzione, lavoro, famiglie, abitazioni.</p>
+          </a>
+          <a class="guide-card" href="#guida-confronto">
+            <span class="guide-step">4</span>
+            <h3>Confronta</h3>
+            <p>Una <strong>zona B</strong> accanto alla A, con lo scarto in %.</p>
+          </a>
+          <a class="guide-card" href="#guida-dettaglio">
+            <span class="guide-step">5</span>
             <h3>Leggi il territorio</h3>
-            <p>Il pannello di destra mostra quota e morfologia del punto (DTM) e la posizione della zona nella
-              classifica di circoscrizioni, quartieri e UPL.</p>
-          </section>
-          <section class="guide-card">
-            <div class="guide-step">6</div>
+            <p>Quota, morfologia e classifica della zona in città.</p>
+          </a>
+          <a class="guide-card" href="#guida-esporta">
+            <span class="guide-step">6</span>
             <h3>Esporta</h3>
-            <p>Scarica in CSV i <strong>totali della zona</strong> o il <strong>dettaglio per sezione</strong>
-              (separatore <code>;</code>, virgola decimale: si apre direttamente in Excel e LibreOffice).</p>
-          </section>
-        </div>
-        <section class="info-section">
-          <h3>Livelli e comandi della mappa</h3>
-          <ul class="info-list">
-            <li><strong>Barra in basso</strong>: colora gli edifici per densità di popolazione o copertura edificata;
-              <em>Elevazione</em> sovrappone la carta altimetrica.</li>
-            <li><strong>Confini amministrativi</strong>: circoscrizioni (linea continua), quartieri (tratteggio),
-              UPL (punteggiato). Passa il mouse sulla mappa per leggerne il nome.</li>
-            <li><strong>Menu mappa</strong> (pulsante arancio): vista iniziale, base satellitare, schermo intero,
-              vista 3D con rilievo, tema chiaro/scuro, queste informazioni.</li>
-            <li><strong>Pannelli</strong>: apri e chiudi con le linguette laterali; trascina il bordo interno per
-              allargarli.</li>
-            <li><strong>Tastiera</strong>: <kbd>Tab</kbd> per spostarsi tra i comandi, <kbd>←</kbd> <kbd>→</kbd> tra
-              le schede di questo pannello, <kbd>Esc</kbd> per chiuderlo.</li>
+            <p>CSV dei totali o delle singole sezioni, PNG dei grafici.</p>
+          </a>
+        </nav>
+
+        <section class="guide-section" id="guida-area">
+          <h3><span class="guide-step">1</span>Attiva l'area di analisi</h3>
+          <p>All'apertura la mappa mostra l'invito <em>«Clicca sulla mappa per attivare l'area di analisi»</em>.
+            Al primo clic compare l'<strong>area A</strong>: un cerchio di <strong>250 m</strong> di raggio, e i
+            due pannelli laterali si aprono con i risultati.</p>
+          <ul class="guide-list">
+            <li><strong>Maniglia centrale</strong> (il pallino <em>A</em>): trascinala per spostare l'area.
+              I grafici si aggiornano mentre la muovi.</li>
+            <li><strong>Maniglia sul bordo</strong> (il pallino arancio in alto): trascinala verso l'esterno o
+              l'interno per cambiare il raggio, che resta indicato nell'etichetta (minimo 50 m).</li>
+            <li>Per ripartire da un altro punto premi <strong>Reset</strong> negli Strumenti e clicca di nuovo sulla
+              mappa: finché l'area esiste, i clic sulla mappa non la spostano.</li>
+            <li>Gli edifici dentro l'area si colorano per <strong>densità di popolazione</strong> (ab/ha): la scala
+              è nella legenda in basso.</li>
+          </ul>
+          <p class="guide-note">Una sezione censuaria viene conteggiata se il suo <strong>centroide</strong> cade
+            dentro l'area: per questo ai bordi il totale può differire da quello che l'occhio si aspetta
+            (vedi <em>Metodologia</em>).</p>
+          <div class="guide-gallery guide-gallery--wide">
+            <figure class="guide-fig">
+              <a href="img/guida/area.webp" target="_blank" rel="noopener"><img src="img/guida/area.webp" width="1200" height="750" loading="lazy" alt="Vista completa: pannello Analisi a sinistra con la popolazione della zona, area A sulla mappa, pannello Dettaglio DTM a destra"></a>
+              <figcaption>Vista d'insieme: <strong>Analisi</strong> a sinistra, area A al centro, <strong>Dettaglio</strong> a destra.</figcaption>
+            </figure>
+            <figure class="guide-fig">
+              <a href="img/guida/maniglie.webp" target="_blank" rel="noopener"><img src="img/guida/maniglie.webp" width="640" height="400" loading="lazy" alt="Area circolare A di 250 metri con la maniglia centrale e quella del raggio; gli edifici all'interno sono colorati per densità"></a>
+              <figcaption>Le due maniglie dell'area: centro e raggio.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="guide-section" id="guida-poligono">
+          <h3><span class="guide-step">2</span>Disegna un poligono</h3>
+          <p>Quando il cerchio non segue la forma che ti interessa (un isolato, un tratto di lungomare, un quartiere
+            irregolare), usa il poligono. Si trova negli <strong>Strumenti</strong> del pannello di sinistra (seconda icona)
+            e <strong>sostituisce</strong> l'area circolare.</p>
+          <ol class="guide-list guide-list--num">
+            <li>Premi <em>Disegna un poligono</em>: il pulsante diventa arancio.</li>
+            <li>Clicca sulla mappa per aggiungere i vertici: una linea tratteggiata segue il mouse.</li>
+            <li>Chiudi con un <strong>doppio clic</strong> oppure cliccando di nuovo sul <strong>primo vertice</strong>.
+              <kbd>Esc</kbd> annulla il disegno in corso.</li>
+            <li>A poligono chiuso i <strong>vertici restano trascinabili</strong> e la maniglia centrale sposta tutta la
+              forma. L'etichetta al centro riporta la superficie in ettari.</li>
+          </ol>
+          <div class="guide-gallery guide-gallery--wide">
+            <figure class="guide-fig">
+              <a href="img/guida/poligono-disegno.webp" target="_blank" rel="noopener"><img src="img/guida/poligono-disegno.webp" width="750" height="469" loading="lazy" alt="Poligono in fase di disegno con quattro vertici e la linea che segue il puntatore"></a>
+              <figcaption>Durante il disegno.</figcaption>
+            </figure>
+            <figure class="guide-fig">
+              <a href="img/guida/poligono.webp" target="_blank" rel="noopener"><img src="img/guida/poligono.webp" width="750" height="469" loading="lazy" alt="Poligono chiuso con cinque vertici e l'etichetta 18,7 ettari al centro"></a>
+              <figcaption>Poligono chiuso: superficie e vertici modificabili.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="guide-section" id="guida-argomenti">
+          <h3><span class="guide-step">3</span>Scegli gli argomenti e leggi i grafici</h3>
+          <p>In cima al pannello <strong>Analisi</strong> ci sono gli <strong>Argomenti</strong>: ognuno aggiunge un
+            grafico. Puoi attivarne quanti vuoi; un secondo clic lo spegne.</p>
+          <ul class="guide-list">
+            <li><strong>Popolazione totale &amp; sesso</strong>, <strong>Piramide età-sesso</strong> (fasce di 5 anni),
+              <strong>Istruzione</strong>, <strong>Occupazione</strong>, <strong>Famiglie</strong> per numero di
+              componenti, <strong>Abitazioni</strong> occupate e vuote.</li>
+            <li><strong>Stranieri</strong> e <strong>Nazionalità principali</strong> descrivono i residenti stranieri.</li>
+            <li><strong>Filtro stranieri</strong>: se <em>Stranieri</em> è attivo insieme ad altri argomenti, quei grafici
+              mostrano <strong>solo la popolazione straniera</strong> (il titolo riporta «solo stranieri»). La piramide
+              passa a tre fasce larghe (0–14, 15–64, 65+), le sole disponibili nel dato ISTAT.</li>
+            <li><strong>Stessa scala per tutti i grafici</strong> (appare con almeno due argomenti): allinea il massimo
+              degli assi per confrontare le barre in valore assoluto.</li>
+            <li>Ogni scheda ha <strong>ⓘ</strong> (cosa misura l'indicatore, con i codici ISTAT) e <strong>↓</strong>
+              (scarica il grafico in PNG).</li>
+          </ul>
+          <p>Sotto gli strumenti trovi il <strong>totale dei residenti</strong> nella zona, il tipo di area e,
+            in arancio, quante <strong>sezioni senza dati</strong> ricadono nell'area: sono sezioni per cui il dataset
+            ISTAT non riporta la popolazione, segnalate ma escluse dai totali (dettagli in <em>Metodologia</em>).</p>
+          <div class="guide-gallery guide-gallery--tall">
+            <figure class="guide-fig">
+              <a href="img/guida/argomenti.webp" target="_blank" rel="noopener"><img src="img/guida/argomenti.webp" width="350" height="467" loading="lazy" alt="Pannello Analisi con tre argomenti attivi e l'interruttore Stessa scala"></a>
+              <figcaption>Tre argomenti attivi.</figcaption>
+            </figure>
+            <figure class="guide-fig">
+              <a href="img/guida/scheda-info.webp" target="_blank" rel="noopener"><img src="img/guida/scheda-info.webp" width="350" height="467" loading="lazy" alt="Scheda di un grafico con la descrizione dell'indicatore aperta e i pulsanti informazioni e download"></a>
+              <figcaption>Scheda con la descrizione ⓘ aperta.</figcaption>
+            </figure>
+            <figure class="guide-fig">
+              <a href="img/guida/grafici.webp" target="_blank" rel="noopener"><img src="img/guida/grafici.webp" width="350" height="467" loading="lazy" alt="Totale della zona, sezioni senza dati e grafico Stranieri con barre per totale, extra-UE, UE e fasce d'età"></a>
+              <figcaption>Totale della zona e grafico <em>Stranieri</em>.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="guide-section" id="guida-confronto">
+          <h3><span class="guide-step">4</span>Confronta due zone</h3>
+          <p>Con un'area attiva premi <em>Confronta</em> (terza icona degli Strumenti, due cerchi). Compare la
+            <strong>zona B</strong>, in arancio, affiancata a est della A con la stessa forma e dimensione; se la A è un
+            poligono, la B ne è una copia. Spostala e ridimensionala con le sue maniglie come la A.</p>
+          <ul class="guide-list">
+            <li>Il pannello di destra passa ai <strong>grafici della zona B</strong>, con gli stessi argomenti della A.</li>
+            <li>Accanto al totale di B compare lo <strong>scarto percentuale rispetto ad A</strong> (es. «−23,4% rispetto ad A»).</li>
+            <li>Premi di nuovo <em>Confronta</em> per tornare a una sola zona e al dettaglio del territorio.</li>
+          </ul>
+          <div class="guide-gallery guide-gallery--wide">
+            <figure class="guide-fig guide-fig--full">
+              <a href="img/guida/confronto.webp" target="_blank" rel="noopener"><img src="img/guida/confronto.webp" width="1200" height="750" loading="lazy" alt="Due aree affiancate A e B; a sinistra i dati della zona A, a destra quelli della zona B con lo scarto del 23,4 per cento"></a>
+              <figcaption>Zona A (ciano) e zona B (arancio): i dati di B nel pannello di destra.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="guide-section" id="guida-dettaglio">
+          <h3><span class="guide-step">5</span>Leggi il territorio: DTM e classifica</h3>
+          <p>Il pannello di destra (<strong>Dettaglio</strong>) descrive il punto centrale dell'area A. L'intestazione riporta
+            circoscrizione, quartiere e UPL, le coordinate e la <strong>quota</strong> in metri sul livello del mare.
+            Sotto, due gruppi apribili:</p>
+          <ul class="guide-list">
+            <li><strong>Morfologia del terreno (DTM)</strong>: pendenza, esposizione, forma del terreno, rischio dei
+              versanti, indici morfometrici (TRI, TPI, SRI, HS), idrologia, soleggiamento e ombra, accessibilità ed
+              erosione, calcolati dal modello digitale del terreno a 5 m. Il link in fondo apre la mappa
+              <em>palermo_dtm5m</em> per approfondire.</li>
+            <li><strong>Posizione in classifica</strong>: la popolazione residente di tutte le
+              <strong>circoscrizioni</strong>, dei <strong>quartieri</strong> o delle <strong>UPL</strong> (scegli il livello
+              con i tre pulsanti). Le barre separano italiani e stranieri, la colonna <em>% str.</em> dà la quota di
+              stranieri e la riga della zona in cui cade il punto è evidenziata.</li>
+          </ul>
+          <div class="guide-gallery guide-gallery--tall">
+            <figure class="guide-fig">
+              <a href="img/guida/dtm.webp" target="_blank" rel="noopener"><img src="img/guida/dtm.webp" width="340" height="453" loading="lazy" alt="Scheda Morfologia del terreno con quota, pendenza, esposizione e rischio versanti"></a>
+              <figcaption>Intestazione e scheda DTM.</figcaption>
+            </figure>
+            <figure class="guide-fig">
+              <a href="img/guida/classifica.webp" target="_blank" rel="noopener"><img src="img/guida/classifica.webp" width="340" height="453" loading="lazy" alt="Classifica delle circoscrizioni per popolazione con la Circoscrizione I evidenziata"></a>
+              <figcaption>Classifica: evidenziata la circoscrizione del punto.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="guide-section" id="guida-esporta">
+          <h3><span class="guide-step">6</span>Esporta i dati</h3>
+          <figure class="guide-fig guide-fig--inline">
+            <img src="img/guida/strumenti.webp" width="350" height="84" loading="lazy" alt="Riga Strumenti: Reset, Poligono, Confronta, CSV totali, CSV sezioni">
+            <figcaption>Strumenti, da sinistra: Reset · Poligono · Confronta · CSV totali · CSV sezioni.</figcaption>
+          </figure>
+          <ul class="guide-list">
+            <li><strong>CSV dei totali</strong> (freccia in giù): una riga per ogni voce di ogni argomento, più tipo di area,
+              centro, superficie in km², numero di sezioni e sezioni senza dati. Con il confronto attivo ha una colonna
+              per la zona A e una per la B.</li>
+            <li><strong>CSV per sezione</strong> (icona tabella): una riga per ogni sezione censuaria dell'area con tutti i
+              campi ISTAT originali; la colonna <em>Zona</em> distingue A e B.</li>
+            <li>I file usano il <strong>punto e virgola</strong> come separatore e la <strong>virgola decimale</strong>, con
+              codifica UTF-8: si aprono con un doppio clic in Excel e LibreOffice, accenti compresi.</li>
+            <li>Ogni grafico si scarica anche come <strong>immagine PNG</strong> dalla sua scheda.</li>
+            <li><strong>Reset</strong> (freccia circolare) rimuove le zone di analisi o interrompe il disegno di un poligono;
+              la vista della mappa resta com'è.</li>
           </ul>
         </section>
+
+        <section class="guide-section" id="guida-livelli">
+          <h3><span class="guide-step">7</span>Livelli della mappa</h3>
+          <p>La <strong>barra in basso</strong> colora la città intera, indipendentemente dall'area di analisi:</p>
+          <ul class="guide-list">
+            <li><strong>Densità popolazione</strong>: ogni edificio prende il colore della densità (ab/ha) della sua sezione.</li>
+            <li><strong>Densità edifici</strong>: la quota di superficie coperta da costruzioni.</li>
+            <li><strong>Elevazione</strong>: sovrappone la carta altimetrica a fasce, dal livello del mare agli oltre 800 m.</li>
+          </ul>
+          <p>Le due densità si escludono a vicenda; un secondo clic le spegne. I <strong>Confini amministrativi</strong>
+            (nel pannello di sinistra) si sommano: circoscrizioni a linea continua, quartieri tratteggiati, UPL
+            punteggiate, sezioni censuarie. Passando il mouse sulla mappa leggi il nome dell'unità. La
+            <strong>legenda</strong> in basso a sinistra si aggiorna con i livelli attivi e si richiude con la freccia.</p>
+          <div class="guide-gallery guide-gallery--wide">
+            <figure class="guide-fig">
+              <a href="img/guida/livelli.webp" target="_blank" rel="noopener"><img src="img/guida/livelli.webp" width="1200" height="750" loading="lazy" alt="Centro di Palermo con edifici colorati per densità di popolazione e i confini di circoscrizioni e quartieri"></a>
+              <figcaption>Densità di popolazione con circoscrizioni e quartieri.</figcaption>
+            </figure>
+            <figure class="guide-fig">
+              <a href="img/guida/elevazione.webp" target="_blank" rel="noopener"><img src="img/guida/elevazione.webp" width="1200" height="750" loading="lazy" alt="Carta altimetrica di Palermo a fasce colorate con la relativa legenda"></a>
+              <figcaption>Il livello Elevazione e la sua legenda.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="guide-section" id="guida-menu">
+          <h3><span class="guide-step">8</span>Menu della mappa e smartphone</h3>
+          <p>Il pulsante arancio in alto a sinistra apre il <strong>menu</strong> (passa il mouse sulle icone per il nome):</p>
+          <ul class="guide-list">
+            <li><strong>Home</strong>: torna alla vista iniziale su tutta la città.</li>
+            <li><strong>Satellite</strong>: sostituisce la base cartografica con l'immagine satellitare.</li>
+            <li><strong>Schermo intero</strong>.</li>
+            <li><strong>3D</strong>: inclina la vista e attiva il rilievo del terreno; in 3D puoi ruotare la mappa
+              con il tasto destro (o <kbd>Ctrl</kbd> + trascinamento).</li>
+            <li><strong>Tema chiaro/scuro</strong>: la scelta resta memorizzata nel browser.</li>
+            <li><strong>Informazioni</strong>: apre questo pannello.</li>
+          </ul>
+          <p id="guida-mobile">Sotto i 640 px di larghezza i pannelli diventano <strong>schede che salgono dal basso</strong>:</p>
+          <ul class="guide-list">
+            <li>Trascina la barretta grigia in cima alla scheda per passare fra tre altezze: <strong>minima</strong>
+              (si vede solo il totale), <strong>metà schermo</strong> e <strong>quasi a tutto schermo</strong>. Un
+              gesto rapido salta al livello successivo; trascinando giù dalla minima la scheda si chiude.</li>
+            <li>Le linguette <em>Analisi</em> e <em>Dettaglio</em> riaprono le rispettive schede.</li>
+            <li>La barra dei livelli si sposta in alto e la legenda parte chiusa, per lasciare spazio alla mappa.</li>
+            <li>Le maniglie dell'area si trascinano con il dito come col mouse.</li>
+          </ul>
+          <div class="guide-gallery guide-gallery--tall">
+            <figure class="guide-fig">
+              <a href="img/guida/menu.webp" target="_blank" rel="noopener"><img src="img/guida/menu.webp" width="315" height="420" loading="lazy" alt="Menu della mappa aperto con i pulsanti Home, Satellite, Schermo intero, 3D, Tema e Informazioni"></a>
+              <figcaption>Il menu della mappa aperto.</figcaption>
+            </figure>
+            <figure class="guide-fig">
+              <a href="img/guida/mobile.webp" target="_blank" rel="noopener"><img src="img/guida/mobile.webp" width="420" height="560" loading="lazy" alt="Vista su smartphone: area A sulla mappa e scheda Analisi aperta a metà schermo"></a>
+              <figcaption>Da smartphone: scheda Analisi a metà altezza.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="guide-section" id="guida-tastiera">
+          <h3><span class="guide-step">9</span>Tastiera e suggerimenti</h3>
+          <ul class="guide-list">
+            <li><kbd>Tab</kbd> / <kbd>Maiusc</kbd>+<kbd>Tab</kbd> per spostarti tra i comandi, <kbd>Invio</kbd> o
+              <kbd>Spazio</kbd> per attivarli.</li>
+            <li><kbd>←</kbd> <kbd>→</kbd> per cambiare scheda in questo pannello, <kbd>Esc</kbd> per chiuderlo.</li>
+            <li><kbd>Esc</kbd> annulla anche il disegno di un poligono.</li>
+            <li>I pannelli laterali si aprono e chiudono con le linguette sui bordi; trascina il loro bordo interno per
+              allargarli.</li>
+            <li>L'indirizzo della pagina si aggiorna con zoom e posizione (es. <code>#15.2/38.1170/13.3630</code>):
+              copialo per condividere la stessa inquadratura.</li>
+            <li>Per un confronto equo tra zone usa lo <strong>stesso raggio</strong> e controlla le <strong>sezioni senza
+              dati</strong>: più sono, meno il totale è affidabile.</li>
+          </ul>
+        </section>
+      </div>
+      <div class="info-pane" id="info-pane-qgis" data-tab="qgis" role="tabpanel" aria-labelledby="info-tab-qgis" tabindex="0">
+        <div class="qh-page">
+
+          <div class="qh-hero">
+            <div class="qh-hero-icon">
+              <svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><polyline points="7 10 10 13 17 7"/></svg>
+            </div>
+            <div>
+              <div class="qh-hero-title">QGIS Headless WSL2</div>
+              <div class="qh-hero-sub">QGIS senza interfaccia grafica su Windows Subsystem for Linux 2</div>
+              <div class="qh-hero-author">di <a href="https://www.linkedin.com/in/salvatore-fiandaca-23a1a250/" target="_blank" rel="noopener noreferrer" title="Profilo LinkedIn di Totò Fiandaca — @pigreco71">Totò Fiandaca <span class="qh-handle">@pigreco71</span></a></div>
+            </div>
+          </div>
+
+          <div class="qh-section">
+            <div class="qh-section-title">
+              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Cos'è
+            </div>
+            <p class="qh-text">Guida operativa per installare e usare <strong>QGIS in modalità headless</strong> — senza interfaccia grafica — su WSL2 (Linux dentro Windows) o Windows nativo, tramite <strong>micromamba</strong>. Consente di eseguire algoritmi QGIS Processing e codice PyQGIS da terminale o pipeline di automazione senza aprire il desktop.</p>
+            <p class="qh-text">Per "headless" si intende l'assenza di finestre grafiche. Su Qt è necessario impostare il plugin offscreen: <code>export QT_QPA_PLATFORM=offscreen</code>.</p>
+          </div>
+
+          <div class="qh-section">
+            <div class="qh-section-title">
+              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              A cosa serve
+            </div>
+            <ul class="qh-list">
+              <li><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Automatizzare elaborazioni geospaziali via script</li>
+              <li><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Testare algoritmi QGIS in pipeline CI/CD senza GUI</li>
+              <li><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Eseguire PyQGIS in batch su grandi dataset raster</li>
+              <li><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Processare dati geografici da linea di comando</li>
+              <li><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Riprodurre analisi in ambienti isolati e riproducibili</li>
+            </ul>
+            <p class="qh-note">Nel progetto collegato <a class="info-link" href="https://github.com/coseerobe/palermo_dtm_5m" target="_blank" rel="noopener noreferrer">Palermo DTM 5m</a> è stato usato per automatizzare la derivazione di <strong>18 layer morfologici</strong> dal DTM 5m di Palermo (~6,4M pixel).</p>
+          </div>
+
+          <div class="qh-section">
+            <div class="qh-section-title">
+              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+              Come funziona
+            </div>
+            <p class="qh-text">Usa <strong>micromamba</strong> (gestore pacchetti leggero, variante di conda) per creare un ambiente isolato contenente QGIS e tutte le dipendenze — GDAL, PROJ, GEOS, Qt, Python. L'ambiente risiede in <code>~/micromamba/envs/qgis</code> (~5 GB) ed è riutilizzabile da qualsiasi cartella o progetto.</p>
+            <div class="qh-steps">
+              <div class="qh-step"><span class="qh-step-n">1</span><div><strong>Installa micromamba</strong> — binario singolo, nessun privilegio root richiesto</div></div>
+              <div class="qh-step"><span class="qh-step-n">2</span><div><strong>Crea l'ambiente</strong> — <code>micromamba create -n qgis -c conda-forge qgis -y</code></div></div>
+              <div class="qh-step"><span class="qh-step-n">3</span><div><strong>Imposta offscreen</strong> — <code>export QT_QPA_PLATFORM=offscreen</code></div></div>
+              <div class="qh-step"><span class="qh-step-n">4</span><div><strong>Esegui</strong> — <code>micromamba run -n qgis python script.py</code></div></div>
+            </div>
+          </div>
+
+          <div class="qh-section">
+            <div class="qh-section-title">
+              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              Requisiti
+            </div>
+            <ul class="qh-list">
+              <li><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>WSL2 attivo con distro Linux (es. Ubuntu) — <code>wsl -l -v</code> → VERSION 2</li>
+              <li><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>~5 GB di spazio libero nella home WSL</li>
+              <li><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Connessione Internet (download dipendenze conda-forge)</li>
+              <li><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Nessuna GUI Windows né QGIS Desktop preinstallato</li>
+            </ul>
+          </div>
+
+          <div class="qh-links">
+            <a href="https://github.com/pigreco/qgis_headless_wsl2" target="_blank" rel="noopener noreferrer" class="qh-btn">
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+              Repository GitHub
+            </a>
+            <a href="https://www.youtube.com/watch?v=FQEmhktDRaQ" target="_blank" rel="noopener noreferrer" class="qh-btn qh-btn-yt">
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+              Video tutorial
+            </a>
+          </div>
+
+        </div>
       </div>
     </div>
   </div>

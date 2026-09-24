@@ -916,6 +916,15 @@ function setupInfoPanel() {
   });
   setupTablist(navEl, activateTab);
 
+  // Indice della Guida: scorre alla sezione senza toccare location.hash,
+  // che la mappa usa per zoom e posizione (hash: true).
+  panel.addEventListener('click', (e) => {
+    const link = e.target.closest('a[href^="#guida-"]');
+    if (!link) return;
+    e.preventDefault();
+    document.getElementById(link.getAttribute('href').slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
   // I pannelli laterali cambiano stato da più punti (linguette, click sulla
   // mappa, resize a trascinamento): osservare class/style li copre tutti.
   const observer = new MutationObserver(syncPanelInsets);
