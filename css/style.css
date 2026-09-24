@@ -1111,6 +1111,67 @@ a.guide-card:focus-visible {
   color: var(--text-1);
 }
 
+/* Metodologia: spaziatura fra paragrafi, elenchi e tabelle nella stessa sezione */
+.info-section > :is(p, ul, ol, .info-table-wrap) + * {
+  margin-top: var(--space-2);
+}
+
+.info-steps {
+  margin: 0;
+  padding-left: 1.4em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-steps li {
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.info-steps li::marker {
+  color: var(--text-1);
+  font-weight: 700;
+}
+
+.info-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+}
+
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.info-table th,
+.info-table td {
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.info-table th {
+  color: var(--text-1);
+  font-weight: 700;
+  background: var(--surface-1);
+}
+
+.info-table tbody tr + tr td,
+.info-table tbody tr:first-child td {
+  border-top: 1px solid var(--border-strong);
+}
+
+.info-table code {
+  font-size: 0.85em;
+  padding: 0 3px;
+}
+
 .info-link {
   color: var(--text-link);
   font-weight: 600;

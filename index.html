@@ -203,72 +203,242 @@
       </div>
       <div class="info-pane" id="info-pane-metodologia" data-tab="metodologia" role="tabpanel" aria-labelledby="info-tab-metodologia" tabindex="0">
         <section class="info-section">
+          <h3>In sintesi</h3>
+          <p>
+            La mappa stima il profilo della popolazione che risiede in un'area scelta liberamente, sommando i dati
+            delle <strong>sezioni di censimento ISTAT 2021</strong> che ricadono al suo interno. Tutti i calcoli
+            avvengono nel browser, in tempo reale, su dati preparati in anticipo: non c'è un server che elabora
+            le richieste e nessun dato dell'utente viene inviato altrove.
+          </p>
+          <ol class="info-steps">
+            <li><strong>Preparazione</strong>: dati ISTAT, confini, edifici e modello del terreno vengono uniti,
+              riproiettati in WGS84 e convertiti in formati leggeri per il web.</li>
+            <li><strong>Selezione</strong>: l'area di analisi (cerchio o poligono) individua le sezioni il cui
+              centroide cade al suo interno.</li>
+            <li><strong>Aggregazione</strong>: i conteggi delle sezioni selezionate vengono sommati per ogni argomento.</li>
+            <li><strong>Contesto</strong>: la zona viene collocata nella sua UPL, nel quartiere e nella circoscrizione,
+              e descritta dal punto di vista morfologico con il DTM.</li>
+          </ol>
+        </section>
+
+        <section class="info-section">
+          <h3>Fonti dei dati</h3>
+          <div class="info-table-wrap">
+            <table class="info-table">
+              <thead>
+                <tr><th scope="col">Dato</th><th scope="col">Fonte</th><th scope="col">Uso nella mappa</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Variabili censuarie per sezione</td>
+                  <td>ISTAT — Censimento permanente della popolazione e delle abitazioni 2021</td>
+                  <td>Tutti gli indicatori dei grafici e dei CSV</td>
+                </tr>
+                <tr>
+                  <td>Basi territoriali (sezioni 2021)</td>
+                  <td>ISTAT</td>
+                  <td>Geometrie delle sezioni, centroidi, superfici</td>
+                </tr>
+                <tr>
+                  <td>Circoscrizioni, quartieri, UPL</td>
+                  <td>Comune di Palermo</td>
+                  <td>Confini sulla mappa, classifiche, localizzazione della zona</td>
+                </tr>
+                <tr>
+                  <td>Edificato 3D (111.844 edifici)</td>
+                  <td>Volumetria comunale 2006, Overture Maps, Global Building Atlas, OpenBuildingMap</td>
+                  <td>Edifici estrusi in 3D e colorati per densità</td>
+                </tr>
+                <tr>
+                  <td>Modello digitale del terreno</td>
+                  <td>HR-DTM-5m, IRPI-CNR (Panza et al., 2026)</td>
+                  <td>Rilievo 3D, elevazione, indici del pannello DTM</td>
+                </tr>
+                <tr>
+                  <td>Mappa di base</td>
+                  <td>OpenFreeMap (dati OpenStreetMap)</td>
+                  <td>Sfondo cartografico chiaro e scuro</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="info-section">
+          <h3>Preparazione dei dati</h3>
+          <p>
+            Le operazioni più pesanti sono eseguite una volta sola, fuori dal browser, con strumenti GIS
+            (GDAL/OGR, QGIS e tippecanoe). Il risultato sono file statici che l'applicazione scarica solo quando servono.
+          </p>
+          <ul class="info-list">
+            <li><strong>Unione dati–geometrie</strong>: le variabili ISTAT sono agganciate alle sezioni tramite il codice
+              univoco <code>SEZ21_ID</code>. A ogni sezione vengono associati la circoscrizione, il quartiere e l'UPL di
+              appartenenza, la superficie e le coordinate del centroide (<code>lon</code>, <code>lat</code>).</li>
+            <li><strong>Indicatori</strong>: le 3.600 sezioni con tutti i campi usati dai grafici sono raccolte in un unico
+              file JSON (circa 6 MB), caricato all'avvio.</li>
+            <li><strong>Tile vettoriali</strong>: sezioni, confini amministrativi ed edifici sono convertiti in
+              <strong>PMTiles</strong>, un archivio di tile che il browser legge a pezzi con richieste HTTP parziali,
+              senza bisogno di un tile server.</li>
+            <li><strong>Edifici</strong>: ogni edificio riceve il codice della sezione in cui ricade e ne eredita la densità
+              di popolazione e la copertura edificata, così la mappa può colorarli senza calcoli al volo.</li>
+            <li><strong>Terreno</strong>: dal DTM a 5 m derivano tre prodotti: le tile di elevazione a colori, le tile
+              di rilievo in codifica <em>Terrarium</em> per la vista 3D e una griglia di punti a passo 50 m con gli
+              indici morfologici, distribuita come tile vettoriali.</li>
+          </ul>
+        </section>
+
+        <section class="info-section">
           <h3>Unità di analisi</h3>
           <p>
-            I dati sono quelli delle <strong>3.600 sezioni di censimento</strong> del Comune di Palermo
-            (Censimento permanente ISTAT 2021), 3.079 delle quali con dati di popolazione: la più piccola ripartizione territoriale per cui ISTAT
-            pubblica variabili su popolazione, famiglie, istruzione, occupazione e abitazioni.
+            La sezione di censimento è la più piccola ripartizione per cui ISTAT pubblica variabili su popolazione,
+            famiglie, istruzione, occupazione e abitazioni: nel centro storico corrisponde spesso a un isolato. Il Comune
+            di Palermo ne conta <strong>3.600</strong>, con <strong>635.439 residenti</strong> al 2021.
           </p>
+          <ul class="info-list">
+            <li><strong>3.079 sezioni con dati</strong> di popolazione, di cui 112 con zero residenti (valore valido:
+              aree produttive, verde, infrastrutture).</li>
+            <li><strong>521 sezioni senza dati</strong>: il dataset ISTAT non riporta valori di popolazione per
+              queste sezioni.</li>
+          </ul>
         </section>
+
         <section class="info-section">
           <h3>Come si forma la zona</h3>
           <p>
-            Una sezione entra nella zona di analisi se il suo <strong>centroide</strong> cade dentro l'area circolare
-            (distanza geodetica dal centro ≤ raggio) o dentro il poligono disegnato. Non c'è ripartizione
-            proporzionale per area: una sezione conta per intero oppure non conta. Con raggi piccoli
-            (sotto i 150–200 m) il risultato dipende quindi molto dalla posizione esatta del centro.
+            Una sezione entra nella zona se il suo <strong>centroide</strong> cade all'interno dell'area di analisi.
+            Non c'è ripartizione proporzionale per superficie: una sezione conta per intero oppure non conta.
+          </p>
+          <ul class="info-list">
+            <li><strong>Area circolare</strong>: il test è la distanza geodetica (formula dell'emisenoverso,
+              <em>haversine</em>) fra il centro e ciascun centroide, confrontata con il raggio. Il raggio iniziale è 250 m
+              (diametro 500 m), il minimo 50 m.</li>
+            <li><strong>Poligono</strong>: le sezioni vengono prima filtrate con il rettangolo che contiene il poligono,
+              poi verificate con il test punto-in-poligono (<em>ray casting</em>).</li>
+            <li><strong>Aggiornamento continuo</strong>: durante il trascinamento il calcolo viene ripetuto ogni 60 ms.
+              Con 3.600 centroidi il confronto uno a uno è immediato e non serve un indice spaziale.</li>
+          </ul>
+          <p>
+            Con raggi piccoli (sotto i 150–200 m) il risultato dipende molto dalla posizione esatta del centro:
+            spostandolo di pochi metri una sezione può entrare o uscire.
           </p>
         </section>
+
         <section class="info-section">
           <h3>Aggregazione degli indicatori</h3>
           <p>
-            I valori mostrati sono <strong>somme dei conteggi</strong> delle sezioni incluse (residenti, maschi,
-            femmine, fasce d'età, titoli di studio, occupati, famiglie per numero di componenti, abitazioni).
-            Le percentuali sono calcolate sui totali della zona, non come media delle percentuali di sezione.
+            I valori mostrati sono <strong>somme dei conteggi</strong> delle sezioni incluse. Le percentuali sono calcolate
+            sui totali della zona, non come media delle percentuali di sezione: così le sezioni più popolose pesano
+            di più, come è giusto.
           </p>
+          <div class="info-table-wrap">
+            <table class="info-table">
+              <thead>
+                <tr><th scope="col">Argomento</th><th scope="col">Campi ISTAT</th><th scope="col">Contenuto</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Popolazione e sesso</td><td><code>P1</code> <code>P2</code> <code>P3</code></td><td>Residenti totali, maschi, femmine</td></tr>
+                <tr><td>Piramide età-sesso</td><td><code>P30</code>–<code>P45</code>, <code>P67</code>–<code>P82</code></td><td>16 fasce quinquennali, da 0–4 a oltre 74 anni</td></tr>
+                <tr><td>Stranieri</td><td><code>ST1</code> <code>ST3</code>–<code>ST5</code> <code>ST16</code> <code>ST19</code></td><td>Totale, UE, extra-UE, tre fasce d'età</td></tr>
+                <tr><td>Nazionalità principali</td><td><code>CIT_1</code>–<code>CIT_10</code></td><td>Le 10 cittadinanze straniere più presenti</td></tr>
+                <tr><td>Istruzione</td><td><code>P86</code>–<code>P90</code></td><td>Titolo di studio più alto, residenti di 9 anni e più</td></tr>
+                <tr><td>Occupazione</td><td><code>P101</code>–<code>P103</code></td><td>Occupati di 15–64 anni, totali e per sesso</td></tr>
+                <tr><td>Famiglie</td><td><code>PF3</code>–<code>PF8</code></td><td>Famiglie da 1 a 6 e più componenti</td></tr>
+                <tr><td>Abitazioni</td><td><code>A2</code> <code>A3</code> <code>A8</code></td><td>Occupate, vuote o occupate da non residenti, totali</td></tr>
+              </tbody>
+            </table>
+          </div>
           <ul class="info-list">
-            <li><strong>Sezioni senza dati</strong>: sezioni incluse nella zona per cui il dataset ISTAT non riporta
-              valori di popolazione (521 in tutto il Comune). Sono conteggiate e segnalate, ma non contribuiscono
-              ai totali. Le sezioni con zero residenti invece sono dati validi.</li>
+            <li><strong>Sezioni senza dati</strong>: se la zona ne include, vengono contate e segnalate con un avviso,
+              ma non contribuiscono ai totali. Un avviso frequente indica che la stima è parziale.</li>
             <li><strong>Filtro stranieri</strong>: se l'argomento <em>Stranieri</em> è attivo insieme ad altri,
               i grafici compatibili mostrano solo la popolazione straniera. La piramide passa a 3 fasce larghe
               (0–14, 15–64, 65+), le uniche che ISTAT incrocia con il sesso per gli stranieri.</li>
             <li><strong>Scala comune</strong>: con più argomenti attivi, l'opzione <em>Scala</em> usa lo stesso
               massimo su tutte le barre, così i valori sono confrontabili in assoluto.</li>
+            <li><strong>Confronto A/B</strong>: la zona B segue esattamente le stesse regole della zona A; le differenze
+              mostrate sono calcolate sui totali delle due zone.</li>
           </ul>
         </section>
+
         <section class="info-section">
           <h3>Densità sulla mappa</h3>
           <p>
-            Gli edifici sono colorati con l'indicatore della sezione in cui ricadono: <strong>densità di
-            popolazione</strong> (abitanti per ettaro) oppure <strong>copertura edificata</strong> (% di superficie
-            della sezione occupata da edifici). Dentro la zona di analisi gli edifici mostrano sempre la
-            densità di popolazione.
+            Gli edifici sono colorati con l'indicatore della sezione in cui ricadono, calcolato una volta per sezione:
+          </p>
+          <ul class="info-list">
+            <li><strong>Densità di popolazione</strong> = residenti della sezione ÷ superficie della sezione, in abitanti
+              per ettaro. La scala va da 0 a 400 e oltre.</li>
+            <li><strong>Copertura edificata</strong> = superficie coperta da edifici ÷ superficie della sezione, in
+              percentuale (0–100%).</li>
+          </ul>
+          <p>
+            Dentro la zona di analisi gli edifici mostrano sempre la densità di popolazione: un edificio è considerato
+            interno se il suo centroide cade nella zona. Poiché tutti gli edifici di una sezione hanno lo stesso colore,
+            la mappa non distingue un palazzo abitato da un magazzino nella stessa sezione.
           </p>
         </section>
+
         <section class="info-section">
           <h3>Classifiche territoriali</h3>
           <p>
-            La popolazione di circoscrizioni, quartieri e UPL è la somma delle sezioni che vi appartengono,
-            divisa fra italiani e stranieri. La riga evidenziata è l'unità amministrativa in cui cade il centro
-            della zona A.
+            La popolazione di <strong>8 circoscrizioni</strong>, <strong>25 quartieri</strong> e <strong>55 UPL</strong>
+            (Unità di Primo Livello) è la somma delle sezioni che vi appartengono. Gli stranieri sono il campo
+            <code>ST1</code>; gli italiani sono ricavati per differenza (<code>P1</code> − <code>ST1</code>).
+            L'unità evidenziata è quella in cui cade il centro della zona A, individuata sul confine UPL.
           </p>
         </section>
+
         <section class="info-section">
           <h3>Analisi DTM</h3>
           <p>
-            Quota, pendenza e indici morfometrici, idrologici ed energetici provengono dal modello digitale del
-            terreno a 5 m, ricampionato su una griglia a passo 50 m. Il pannello mostra il
-            <strong>punto di griglia più vicino</strong> al centro della zona A: è un valore puntuale, non una media
-            sulla zona.
+            Il pannello di destra descrive il terreno con i dati dell'<strong>HR-DTM-5m</strong> dell'IRPI-CNR,
+            un modello del terreno a 5 m di risoluzione ottenuto da rilievi LiDAR integrati con TINITALY. Gli indici
+            sono stati calcolati sul DTM a 5 m e poi campionati su una <strong>griglia a passo 50 m</strong>.
+          </p>
+          <ul class="info-list">
+            <li><strong>Punto più vicino</strong>: l'applicazione carica le tile della griglia attorno al centro della
+              zona A (la tile che lo contiene e le otto adiacenti) e mostra il punto con distanza minima. È un valore
+              puntuale, non una media sulla zona.</li>
+            <li><strong>Indici</strong>: quota, pendenza, esposizione, forma del terreno, stabilità dei versanti,
+              costruibilità, indici morfometrici (TRI, TPI, SRI), idrologici (TWI, SPI, accumulo di flusso), energetici
+              (cielo visibile, potenziale fotovoltaico, ombreggiamento), velocità di cammino secondo Tobler ed erosione
+              (fattore LS della RUSLE).</li>
+            <li><strong>Vista 3D</strong>: il rilievo è lo stesso DTM, esagerato 1,5 volte per rendere leggibili le
+              pendenze.</li>
+          </ul>
+          <p>
+            Il dettaglio di ogni indice è nella mappa
+            <a class="info-link" href="https://palermohub.opendatasicilia.it/palermo_dtm5m.html" target="_blank" rel="noopener noreferrer"
+               title="Analisi morfologica interattiva del territorio del Comune di Palermo su DTM 5m">palermo_dtm5m</a>.
           </p>
         </section>
+
+        <section class="info-section">
+          <h3>Esportazione</h3>
+          <p>
+            Il CSV dei totali riporta, per la zona A (ed eventualmente B), tipo di area, coordinate del centro,
+            superficie, numero di sezioni, sezioni senza dati e tutti gli argomenti aggregati. La superficie è
+            π·r² per il cerchio; per il poligono è calcolata con la formula di Gauss su una proiezione locale.
+            Il CSV delle sezioni elenca i valori ISTAT originali di ogni sezione inclusa. I file usano il punto e
+            virgola come separatore e la virgola decimale, così si aprono direttamente in Excel e LibreOffice.
+          </p>
+        </section>
+
         <section class="info-section">
           <h3>Limiti</h3>
+          <ul class="info-list">
+            <li><strong>Data</strong>: i dati fotografano la popolazione residente al 2021 e non registrano i cambiamenti successivi.</li>
+            <li><strong>Inclusione per centroide</strong>: ai margini della zona la popolazione può essere sovrastimata
+              o sottostimata. Le sezioni molto estese (periferia, aree verdi, porto) pesano per intero anche quando
+              l'area di analisi ne copre solo una parte.</li>
+            <li><strong>Effetto della forma</strong>: aree diverse sullo stesso territorio possono dare risultati
+              diversi (problema dell'unità areale modificabile, MAUP). Conviene provare più raggi e posizioni.</li>
+            <li><strong>Dati mancanti</strong>: le 521 sezioni senza dati rendono i totali una stima per difetto nelle
+              zone in cui sono concentrate.</li>
+            <li><strong>Edifici</strong>: il layer combina fonti di anni diversi; forme e altezze sono indicative.</li>
+          </ul>
           <p>
-            I dati fotografano la situazione al 2021. L'inclusione per centroide può sovra o sotto-stimare le zone
-            ai margini, e le sezioni molto estese (periferia, aree verdi, porto) pesano più del territorio
-            effettivamente coperto dall'area di analisi. I risultati sono stime a fini esplorativi e divulgativi.
+            I risultati sono stime a fini esplorativi e divulgativi e non sostituiscono le statistiche ufficiali.
           </p>
         </section>
       </div>
