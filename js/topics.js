@@ -28,6 +28,7 @@ const AGE_BANDS_STRANIERI = [
 export const TOPICS = {
   popolazione_sesso: {
     label: 'Popolazione totale & sesso',
+    description: 'Popolazione residente totale, maschi e femmine (ISTAT P1, P2, P3).',
     chartType: 'doughnut',
     series: [
       { field: 'P2', label: 'Maschi' },
@@ -40,6 +41,7 @@ export const TOPICS = {
   },
   stranieri: {
     label: 'Stranieri',
+    description: 'Stranieri e apolidi residenti: totale, cittadini UE ed extra-UE, e tre fasce d\'età (0–29, 30–54, 55 anni e più).',
     chartType: 'bar',
     series: [
       { field: 'ST1', label: 'Totale' },
@@ -52,12 +54,14 @@ export const TOPICS = {
   },
   piramide_eta: {
     label: 'Piramide età-sesso',
+    description: 'Popolazione residente per sesso e fasce d\'età di 5 anni, da meno di 5 a oltre 74 anni. Con il filtro stranieri: 3 fasce (0–14, 15–64, 65+).',
     chartType: 'pyramid',
     ageBands: AGE_BANDS,
     stranieriAgeBands: AGE_BANDS_STRANIERI
   },
   istruzione: {
     label: 'Istruzione',
+    description: 'Residenti di 9 anni e più per titolo di studio più alto: nessuno, licenza elementare, media, diploma (incluse le qualifiche professionali), titoli terziari.',
     chartType: 'bar',
     series: [
       { field: 'P86', label: 'Nessun titolo' },
@@ -69,6 +73,7 @@ export const TOPICS = {
   },
   occupazione: {
     label: 'Occupazione',
+    description: 'Residenti occupati di 15–64 anni, totali e per sesso.',
     chartType: 'bar',
     series: [
       { field: 'P101', label: 'Occupati totali' },
@@ -78,6 +83,7 @@ export const TOPICS = {
   },
   nazionalita: {
     label: 'Nazionalità principali',
+    description: 'Stranieri residenti per le 10 cittadinanze riportate nel dataset ISTAT per Palermo.',
     chartType: 'bar',
     series: [
       { field: 'CIT_1_BGD', label: 'Bangladesh' },
@@ -94,6 +100,7 @@ export const TOPICS = {
   },
   famiglie: {
     label: 'Famiglie per n. componenti',
+    description: 'Famiglie residenti per numero di componenti, da 1 a 6 e oltre.',
     chartType: 'bar',
     series: [
       { field: 'PF3', label: '1 componente' },
@@ -106,6 +113,7 @@ export const TOPICS = {
   },
   abitazioni: {
     label: 'Abitazioni',
+    description: 'Abitazioni occupate da almeno un residente; vuote o occupate solo da non residenti; totali.',
     chartType: 'bar',
     series: [
       { field: 'A2', label: 'Occupate' },

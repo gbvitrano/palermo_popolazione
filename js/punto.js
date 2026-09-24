@@ -1,27 +1,28 @@
-const CLASS_COLORS = {
-  1: { bg: '#dcfce7', text: '#166534', border: '#86efac' },
-  2: { bg: '#d9f99d', text: '#3a5a0a', border: '#a3e635' },
-  3: { bg: '#fef9c3', text: '#854d0e', border: '#fde047' },
-  4: { bg: '#ffedd5', text: '#9a3412', border: '#fdba74' },
-  5: { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' }
-};
-const NAME_TO_CLASS = {
-  'molto stabile': 1, 'stabile': 2, 'moderatamente instabile': 3,
-  'instabile': 4, 'molto instabile': 5,
-  'ottima': 1, 'buona': 2, 'moderata': 3, 'difficile': 4, 'non idonea': 5
-};
-
-function classColor(nome) {
-  if (!nome) return null;
-  const key = nome.toLowerCase().trim();
-  for (const [k, v] of Object.entries(NAME_TO_CLASS)) {
-    if (key.includes(k)) return CLASS_COLORS[v];
-  }
-  return null;
+// Classi 1 (migliore) → 5 (peggiore) dai campi numerici della griglia
+// (`stabilita`, `costruibilita`; 0 = non disponibile). I colori sono in
+// css/style.css (.punto-badge--c1…c5), con variante per il tema scuro.
+// Non si ricava la classe dal nome: 'stabile' è contenuto in 'instabile' e
+// i nomi di costruibilità ("Alta costruibilità …", "Molto bassa …") variano.
+function classIndex(code) {
+  const c = Number(code);
+  return Number.isInteger(c) && c >= 1 && c <= 5 ? c : null;
 }
 
 function n(v, decimals = 1) {
   return v != null && v !== '' && !isNaN(+v) ? Number(v).toFixed(decimals) : '—';
+}
+
+// Gruppi richiudibili del pannello: lo stato sopravvive ai re-render
+// (il pannello viene ricostruito a ogni spostamento dello spot).
+const groupOpen = { dtm: true, rank: true };
+
+function group(key, label, bodyEl) {
+  const d = el('details', 'punto-group');
+  d.open = groupOpen[key];
+  d.addEventListener('toggle', () => { groupOpen[key] = d.open; });
+  d.appendChild(Object.assign(el('summary', 'punto-group-summary'), { textContent: label }));
+  bodyEl.appendChild(d);
+  return d;
 }
 
 function el(tag, className) {
@@ -43,15 +44,41 @@ function row(label, value) {
   return r;
 }
 
-function badgeRow(label, nome) {
+function badgeRow(label, nome, code) {
   const r = el('div', 'punto-row');
   r.appendChild(Object.assign(el('span', 'punto-row-label'), { textContent: label }));
   const badge = el('span', 'punto-badge');
-  badge.textContent = nome || '—';
-  const c = classColor(nome);
-  if (c) badge.style.cssText = `background:${c.bg};color:${c.text};border-color:${c.border};`;
+  const c = classIndex(code);
+  if (c) {
+    // numero di classe visibile: l'informazione non passa solo dal colore
+    badge.classList.add(`punto-badge--c${c}`);
+    badge.title = `Classe ${c} su 5 (1 = migliore)`;
+    const num = Object.assign(el('span', 'punto-badge-num'), { textContent: c });
+    num.setAttribute('aria-hidden', 'true');
+    badge.appendChild(num);
+    badge.appendChild(Object.assign(el('span', 'visually-hidden'), { textContent: `Classe ${c} su 5: ` }));
+  }
+  badge.appendChild(document.createTextNode(nome || '—'));
   r.appendChild(badge);
   return r;
+}
+
+// Segnaposto animato mentre si scaricano le tile della griglia DTM.
+export function renderPuntoSkeleton(bodyEl) {
+  bodyEl.innerHTML = '';
+  const wrap = el('div', 'skeleton');
+  wrap.setAttribute('aria-busy', 'true');
+  wrap.appendChild(Object.assign(el('span', 'visually-hidden'), { textContent: 'Caricamento dei dati del terreno…' }));
+  for (const widths of [[35], [60, 25], [50, 30], [35], [70, 20], [45, 35]]) {
+    const r = el('div', 'skeleton-row');
+    for (const w of widths) {
+      const b = el('span', 'skeleton-block');
+      b.style.width = `${w}%`;
+      r.appendChild(b);
+    }
+    wrap.appendChild(r);
+  }
+  bodyEl.appendChild(wrap);
 }
 
 /**
@@ -75,20 +102,22 @@ export function renderPuntoPanel(bodyEl, p, quotaBoxEl, quotaValEl) {
     quotaBoxEl.classList.remove('hidden');
   }
 
+  const dtm = group('dtm', 'Morfologia del terreno (DTM)', bodyEl);
+
   const sPend = sec('Pendenza');
   sPend.appendChild(row('Gradi', `${n(p.slope_deg)}°`));
   sPend.appendChild(row('Percentuale', `${n(p.slope_pct)} %`));
-  bodyEl.appendChild(sPend);
+  dtm.appendChild(sPend);
 
   const sMorf = sec('Morfologia');
   sMorf.appendChild(row('Esposizione', p.aspetto_nome || '—'));
   sMorf.appendChild(row('Forma terreno', p.geomorf_nome || '—'));
-  bodyEl.appendChild(sMorf);
+  dtm.appendChild(sMorf);
 
   const sRisk = sec('Rischio versanti');
-  sRisk.appendChild(badgeRow('Stabilità', p.stabilita_nome));
-  sRisk.appendChild(badgeRow('Costruibilità', p.costr_nome));
-  bodyEl.appendChild(sRisk);
+  sRisk.appendChild(badgeRow('Stabilità', p.stabilita_nome, p.stabilita));
+  sRisk.appendChild(badgeRow('Costruibilità', p.costr_nome, p.costruibilita));
+  dtm.appendChild(sRisk);
 
   const sIdx = sec('Indici morfometrici');
   const idxGrid = el('div', 'punto-idx-grid');
@@ -99,14 +128,14 @@ export function renderPuntoPanel(bodyEl, p, quotaBoxEl, quotaValEl) {
     idxGrid.appendChild(cell);
   });
   sIdx.appendChild(idxGrid);
-  bodyEl.appendChild(sIdx);
+  dtm.appendChild(sIdx);
 
   const sIdro = sec('Idrologia');
   sIdro.appendChild(row('TWI — Umidità topografica', n(p.twi, 1)));
   sIdro.appendChild(row('SPI — Stream Power', n(p.spi, 2)));
   if (p.flow_acc != null) sIdro.appendChild(row('Flow Acc. (log)', n(p.flow_acc, 2)));
   if (p.dtw != null) sIdro.appendChild(row('DTW — Profondità falda', `${n(p.dtw, 1)} m`));
-  bodyEl.appendChild(sIdro);
+  dtm.appendChild(sIdro);
 
   const sEn = sec('Energia e clima');
   if (p.svf != null) sEn.appendChild(row('SVF — Cielo visibile', `${Math.round(p.svf * 100)} %`));
@@ -114,18 +143,18 @@ export function renderPuntoPanel(bodyEl, p, quotaBoxEl, quotaValEl) {
   if (p.ombra_est != null) sEn.appendChild(row('Ombra estiva', `${Math.round(p.ombra_est / 2.55)} %`));
   if (p.ombra_inv != null) sEn.appendChild(row('Ombra invernale', `${Math.round(p.ombra_inv / 2.55)} %`));
   if (p.frost != null) sEn.appendChild(row('Rischio gelata', n(p.frost, 3)));
-  bodyEl.appendChild(sEn);
+  dtm.appendChild(sEn);
 
   const sMob = sec('Accessibilità ed erosione');
   if (p.tobler != null) sMob.appendChild(row('Velocità Tobler', `${n(p.tobler, 1)} km/h`));
   if (p.viewshed != null) sMob.appendChild(row('Visibilità cumulativa', `${Math.round(p.viewshed)}/6 punti`));
   if (p.rusle != null) sMob.appendChild(row('Erosione RUSLE LS', n(p.rusle, 2)));
-  bodyEl.appendChild(sMob);
+  dtm.appendChild(sMob);
 
   const note = el('div', 'punto-note');
   note.innerHTML = 'Per maggiori dettagli sul territorio consultare la mappa ' +
     '<a href="https://palermohub.opendatasicilia.it/palermo_dtm5m.html" target="_blank" rel="noopener" title="Analisi morfologica interattiva del territorio del Comune di Palermo su DTM 5m ad alta risoluzione">palermo_dtm5m</a>.';
-  bodyEl.appendChild(note);
+  dtm.appendChild(note);
 }
 
 // Livelli amministrativi della classifica: campo del record ISTAT, etichetta pulsante, prefisso riga
@@ -181,6 +210,8 @@ export function renderCircRanking(bodyEl, statsByLevel, luogo) {
   item.appendChild(s);
 
   const switcher = el('div', 'circ-level-buttons');
+  switcher.setAttribute('role', 'radiogroup');
+  switcher.setAttribute('aria-label', 'Livello della classifica');
   s.appendChild(switcher);
 
   const legend = el('div', 'circ-legend');
@@ -249,6 +280,8 @@ export function renderCircRanking(bodyEl, statsByLevel, luogo) {
     } else {
       list.scrollTop = 0;
     }
+    // riga fissa solo dopo la misura: con position:sticky offsetTop darebbe la posizione "incollata"
+    cur?.classList.add('is-pinned');
   };
 
   for (const [lvl, cfg] of Object.entries(RANK_LEVELS)) {
@@ -264,6 +297,6 @@ export function renderCircRanking(bodyEl, statsByLevel, luogo) {
     switcher.appendChild(b);
   }
 
-  bodyEl.appendChild(item);
+  group('rank', 'Posizione in classifica', bodyEl).appendChild(item);
   draw();
 }

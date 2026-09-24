@@ -1,22 +1,45 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-      <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <META HTTP-EQUIV="refresh" CONTENT="3600">  
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#d9731a">
+  <title>Palermo — Esplorazione demografica a raggio mobile</title>
   <meta name="description" content="Mappa interattiva della popolazione di Palermo: esplora i dati del Censimento ISTAT 2021 per sezione censuaria con un raggio mobile, confronta due zone, disegna aree personalizzate e analizza piramide d'età, cittadinanza e altimetria DTM 5m.">
   <meta name="keywords" content="Palermo, popolazione, demografia, censimento, ISTAT 2021, sezioni censuarie, mappa interattiva, circoscrizioni, quartieri, UPL, stranieri, piramide età, DTM, open data, OpenDataSicilia, MapLibre">
-  <title>Palermo — Esplorazione demografica a raggio mobile</title>
-      <meta name="author" content="Giovan Battista Vitrano per OpenDataSicilia.it">
-    <meta httpcosa -equiv="content-language" content="IT">
-	<link rel="shortcut icon" href="img/favicon.ico"/> 
-	<link rel="icon" href="img/favicon.png" type="image/png"/> 
-    <meta name="robots" content="index,follow">
-    <meta name="creation_Date" content="24/09/2026">
-  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <meta name="author" content="Giovan Battista Vitrano per OpenDataSicilia.it">
+  <meta name="robots" content="index,follow">
+  <link rel="icon" href="img/favicon.ico" sizes="any">
+  <link rel="icon" href="img/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="img/favicon.png">
+
+  <!-- Open Graph / social -->
+  <meta property="og:url" content="https://gbvitrano.github.io/palermo_popolazione/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="it_IT">
+  <meta property="og:title" content="Palermo — Esplorazione demografica a raggio mobile | 2026 by @opendatasicilia">
+  <meta property="og:description" content="Mappa interattiva della popolazione di Palermo: esplora i dati del Censimento ISTAT 2021 per sezione censuaria con un raggio mobile, confronta due zone, disegna aree personalizzate e analizza piramide d'età, cittadinanza e altimetria DTM 5m.">
+  <meta property="og:image" content="https://gbvitrano.github.io/palermo_popolazione/img/social_card.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="750">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta property="twitter:domain" content="palermohub.opendatasicilia.it">
+  <meta property="twitter:url" content="https://gbvitrano.github.io/palermo_popolazione/">
+  <meta name="twitter:title" content="Palermo — Esplorazione demografica a raggio mobile | 2026 by @opendatasicilia">
+  <meta name="twitter:description" content="Mappa interattiva della popolazione di Palermo: esplora i dati del Censimento ISTAT 2021 per sezione censuaria con un raggio mobile, confronta due zone, disegna aree personalizzate e analizza piramide d'età, cittadinanza e altimetria DTM 5m.">
+  <meta name="twitter:image" content="https://gbvitrano.github.io/palermo_popolazione/img/social_card.jpg">
+
+  <!-- Connessioni anticipate: CDN librerie e tile basemap -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="data/sezioni_indicatori.json" as="fetch" crossorigin>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap">
   <link rel="stylesheet" href="css/style.css">
   <script>
     (function () {
@@ -27,44 +50,34 @@
       } catch (e) {}
     })();
   </script>
-  
-  
- 	    <!-- Meta tags per social sharing pen Graph Protocol -->
-    <meta property="og:url" content="https://gbvitrano.github.io/palermo_popolazione/">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Palermo — Esplorazione demografica a raggio mobile | 2026 by @opendatasicilia">
-    <meta property="og:description" content="Mappa interattiva della popolazione di Palermo: esplora i dati del Censimento ISTAT 2021 per sezione censuaria con un raggio mobile, confronta due zone, disegna aree personalizzate e analizza piramide d'età, cittadinanza e altimetria DTM 5m.">
-    <meta property="og:image" content="https://gbvitrano.github.io/palermo_popolazione/img/social_card.jpg"> 
-	<!-- twitter -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta property="twitter:domain" content="palermohub.opendatasicilia.it">
-    <meta property="twitter:url" content="https://gbvitrano.github.io/palermo_popolazione/">
-    <meta name="twitter:title" content="Palermo — Esplorazione demografica a raggio mobile | 2026 by @opendatasicilia">
-    <meta name="twitter:description" content="Mappa interattiva della popolazione di Palermo: esplora i dati del Censimento ISTAT 2021 per sezione censuaria con un raggio mobile, confronta due zone, disegna aree personalizzate e analizza piramide d'età, cittadinanza e altimetria DTM 5m. ">
-    <meta name="twitter:image" content="https://gbvitrano.github.io/palermo_popolazione/img/social_card.jpg">	 
-  
- <!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-87653723-4"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+</head>
+<body>
+  <!-- Schermata di caricamento: visibile subito (prima del JS), rimossa da app.js
+       quando dati e mappa sono pronti; mostra anche gli errori di avvio. -->
+  <div id="app-loader" class="app-loader" role="status" aria-live="polite">
+    <div class="app-loader-card">
+      <img class="app-loader-logo" src="img/favicon.png" alt="" width="44" height="44">
+      <div class="app-loader-title">Palermo — Esplorazione demografica</div>
+      <div class="app-loader-sub">Censimento ISTAT 2021 per sezione</div>
+      <ul class="app-loader-steps">
+        <li data-step="dati" data-state="active"><span class="step-icon" aria-hidden="true"></span><span>Dati del censimento</span><span class="step-detail"></span></li>
+        <li data-step="mappa" data-state="active"><span class="step-icon" aria-hidden="true"></span><span>Mappa e confini</span><span class="step-detail"></span></li>
+      </ul>
+      <div class="app-loader-bar" aria-hidden="true"><span></span></div>
+      <div class="app-loader-error" hidden>
+        <p></p>
+        <button type="button" class="app-loader-retry">Riprova</button>
+      </div>
+    </div>
+  </div>
 
-  gtag('config', 'UA-87653723-4');
-</script>			  
-</head>
-<body>
- 
-  
-</head>
-<body>
   <div id="map"></div>
 
   <div id="map-toolbar" class="map-toolbar">
-    <button id="dial-fab" class="dial-fab" aria-label="Apri/chiudi il menu della mappa" data-tooltip="Apri/chiudi il menu della mappa" aria-expanded="false">
+    <button type="button" id="dial-fab" class="dial-fab" aria-controls="dial-items" aria-label="Apri/chiudi il menu della mappa" data-tooltip="Apri/chiudi il menu della mappa" aria-expanded="false">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
     </button>
-    <div id="dial-items" class="dial-items">
+    <div id="dial-items" class="dial-items" role="group" aria-label="Comandi mappa">
       <button id="toolbar-home" class="dial-item" data-action="home" aria-label="Home — torna alla vista iniziale" data-tooltip="Home — torna alla vista iniziale">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 3 3 10h2v10h5v-6h4v6h5V10h2L12 3Z"/></svg>
       </button>
@@ -75,7 +88,7 @@
         <svg class="icon-expand" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4"/></svg>
         <svg class="icon-collapse" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M8 21v-3a2 2 0 0 0-2-2H3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
       </button>
-      <button id="toolbar-3d" class="dial-item" data-action="toggle3d" aria-label="Attiva/disattiva vista 3D" data-tooltip="Attiva/disattiva vista 3D">2D</button>
+      <button id="toolbar-3d" class="dial-item" data-action="toggle3d" aria-label="Attiva/disattiva vista 3D" data-tooltip="Attiva/disattiva vista 3D">3D</button>
       <button id="toolbar-theme" class="dial-item" data-action="theme" aria-label="Tema chiaro/scuro" data-tooltip="Tema chiaro/scuro">
         <svg class="icon-theme-dark" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"/></svg>
         <svg class="icon-theme-light" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
@@ -87,26 +100,26 @@
   </div>
 
   <!-- Pannello Info (basso): si centra nello spazio libero tra i due pannelli laterali -->
-  <div id="info-panel" aria-labelledby="info-panel-title">
-    <button id="info-panel-handle" class="info-panel-handle" title="Info, metodologia e guida" aria-label="Apri/chiudi pannello info" aria-expanded="false">
+  <div id="info-panel" role="region" aria-labelledby="info-panel-title">
+    <button type="button" id="info-panel-handle" class="info-panel-handle" aria-controls="info-panel-body" title="Info, metodologia e guida" aria-label="Apri/chiudi pannello info" aria-expanded="false">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
     </button>
-    <div class="info-panel-body">
+    <div id="info-panel-body" class="info-panel-body">
       <div class="info-panel-header">
         <div>
           <div id="info-panel-title" class="info-panel-title">Palermo — Esplorazione demografica a raggio mobile</div>
           <div class="info-panel-sub">Informazioni, metodologia e guida all'uso</div>
         </div>
-        <button id="info-panel-close" class="info-panel-close" aria-label="Chiudi">
+        <button type="button" id="info-panel-close" class="info-panel-close" aria-label="Chiudi il pannello info">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <div id="info-panel-nav" class="info-panel-nav" role="tablist">
-        <button class="info-tab" data-tab="metodologia" role="tab">Metodologia</button>
-        <button class="info-tab" data-tab="guida" role="tab">Guida</button>
-        <button class="info-tab active" data-tab="info" role="tab">Info</button>
+        <button type="button" class="info-tab" id="info-tab-metodologia" data-tab="metodologia" role="tab" aria-controls="info-pane-metodologia">Metodologia</button>
+        <button type="button" class="info-tab" id="info-tab-guida" data-tab="guida" role="tab" aria-controls="info-pane-guida">Guida</button>
+        <button type="button" class="info-tab active" id="info-tab-info" data-tab="info" role="tab" aria-controls="info-pane-info">Info</button>
       </div>
-      <div class="info-pane active" data-tab="info" role="tabpanel">
+      <div class="info-pane active" id="info-pane-info" data-tab="info" role="tabpanel" aria-labelledby="info-tab-info" tabindex="0">
         <section class="info-section">
           <h3>Cos'è questa mappa</h3>
           <p>
@@ -130,7 +143,7 @@
             <a class="info-link" href="https://www.istat.it/notizia/basi-territoriali-e-variabili-censuarie/"
                target="_blank" rel="noopener noreferrer"
                title="ISTAT — Basi territoriali e variabili censuarie del Censimento permanente 2021">ISTAT — Censimento permanente della popolazione e delle abitazioni 2021</a>:
-            variabili censuarie e basi territoriali per sezione di censimento (3.079 sezioni nel Comune di Palermo).
+            variabili censuarie e basi territoriali per sezione di censimento (3.600 sezioni nel Comune di Palermo, 3.079 con dati di popolazione).
             Confini di circoscrizioni, quartieri e UPL: Comune di Palermo.
           </p>
         </section>
@@ -173,57 +186,168 @@
           </p>
         </section>
       </div>
-      <div class="info-pane" data-tab="metodologia" role="tabpanel">
+      <div class="info-pane" id="info-pane-metodologia" data-tab="metodologia" role="tabpanel" aria-labelledby="info-tab-metodologia" tabindex="0">
         <section class="info-section">
-          <h3>Metodologia</h3>
-          <p class="info-placeholder">
-            Testo provvisorio. Qui verrà descritto come i dati delle sezioni censuarie vengono aggregati
-            nell'area di analisi (cerchio o poligono), il trattamento delle sezioni parzialmente incluse
-            e i limiti delle stime.
+          <h3>Unità di analisi</h3>
+          <p>
+            I dati sono quelli delle <strong>3.600 sezioni di censimento</strong> del Comune di Palermo
+            (Censimento permanente ISTAT 2021), 3.079 delle quali con dati di popolazione: la più piccola ripartizione territoriale per cui ISTAT
+            pubblica variabili su popolazione, famiglie, istruzione, occupazione e abitazioni.
+          </p>
+        </section>
+        <section class="info-section">
+          <h3>Come si forma la zona</h3>
+          <p>
+            Una sezione entra nella zona di analisi se il suo <strong>centroide</strong> cade dentro il cerchio
+            (distanza geodetica dal centro ≤ raggio) o dentro il poligono disegnato. Non c'è ripartizione
+            proporzionale per area: una sezione conta per intero oppure non conta. Con raggi piccoli
+            (sotto i 150–200 m) il risultato dipende quindi molto dalla posizione esatta del centro.
+          </p>
+        </section>
+        <section class="info-section">
+          <h3>Aggregazione degli indicatori</h3>
+          <p>
+            I valori mostrati sono <strong>somme dei conteggi</strong> delle sezioni incluse (residenti, maschi,
+            femmine, fasce d'età, titoli di studio, occupati, famiglie per numero di componenti, abitazioni).
+            Le percentuali sono calcolate sui totali della zona, non come media delle percentuali di sezione.
+          </p>
+          <ul class="info-list">
+            <li><strong>Sezioni senza dati</strong>: sezioni incluse nella zona per cui il dataset ISTAT non riporta
+              valori di popolazione (521 in tutto il Comune). Sono conteggiate e segnalate, ma non contribuiscono
+              ai totali. Le sezioni con zero residenti invece sono dati validi.</li>
+            <li><strong>Filtro stranieri</strong>: se l'argomento <em>Stranieri</em> è attivo insieme ad altri,
+              i grafici compatibili mostrano solo la popolazione straniera. La piramide passa a 3 fasce larghe
+              (0–14, 15–64, 65+), le uniche che ISTAT incrocia con il sesso per gli stranieri.</li>
+            <li><strong>Scala comune</strong>: con più argomenti attivi, l'opzione <em>Scala</em> usa lo stesso
+              massimo su tutte le barre, così i valori sono confrontabili in assoluto.</li>
+          </ul>
+        </section>
+        <section class="info-section">
+          <h3>Densità sulla mappa</h3>
+          <p>
+            Gli edifici sono colorati con l'indicatore della sezione in cui ricadono: <strong>densità di
+            popolazione</strong> (abitanti per ettaro) oppure <strong>copertura edificata</strong> (% di superficie
+            della sezione occupata da edifici). Dentro la zona di analisi gli edifici mostrano sempre la
+            densità di popolazione.
+          </p>
+        </section>
+        <section class="info-section">
+          <h3>Classifiche territoriali</h3>
+          <p>
+            La popolazione di circoscrizioni, quartieri e UPL è la somma delle sezioni che vi appartengono,
+            divisa fra italiani e stranieri. La riga evidenziata è l'unità amministrativa in cui cade il centro
+            della zona A.
+          </p>
+        </section>
+        <section class="info-section">
+          <h3>Analisi DTM</h3>
+          <p>
+            Quota, pendenza e indici morfometrici, idrologici ed energetici provengono dal modello digitale del
+            terreno a 5 m, ricampionato su una griglia a passo 50 m. Il pannello mostra il
+            <strong>punto di griglia più vicino</strong> al centro della zona A: è un valore puntuale, non una media
+            sulla zona.
+          </p>
+        </section>
+        <section class="info-section">
+          <h3>Limiti</h3>
+          <p>
+            I dati fotografano la situazione al 2021. L'inclusione per centroide può sovra o sotto-stimare le zone
+            ai margini, e le sezioni molto estese (periferia, aree verdi, porto) pesano più del territorio
+            effettivamente coperto dal cerchio. I risultati sono stime a fini esplorativi e divulgativi.
           </p>
         </section>
       </div>
-      <div class="info-pane" data-tab="guida" role="tabpanel">
+      <div class="info-pane" id="info-pane-guida" data-tab="guida" role="tabpanel" aria-labelledby="info-tab-guida" tabindex="0">
+        <div class="guide-grid">
+          <section class="guide-card">
+            <div class="guide-step">1</div>
+            <h3>Scegli un punto</h3>
+            <p>Clicca sulla mappa: compare il <strong>cerchio A</strong> (raggio 250 m). Trascina la maniglia
+              centrale per spostarlo e quella sul bordo per cambiare il raggio. I grafici si aggiornano mentre trascini.</p>
+          </section>
+          <section class="guide-card">
+            <div class="guide-step">2</div>
+            <h3>Oppure disegna un'area</h3>
+            <p>Con <em>Poligono</em> negli Strumenti clicca i vertici sulla mappa e chiudi con un doppio clic o
+              cliccando sul primo vertice. <kbd>Esc</kbd> annulla il disegno.</p>
+          </section>
+          <section class="guide-card">
+            <div class="guide-step">3</div>
+            <h3>Scegli cosa analizzare</h3>
+            <p>Nel pannello di sinistra attiva uno o più <strong>Argomenti</strong>: popolazione e sesso, piramide
+              d'età, stranieri, nazionalità, istruzione, occupazione, famiglie, abitazioni.</p>
+          </section>
+          <section class="guide-card">
+            <div class="guide-step">4</div>
+            <h3>Confronta due zone</h3>
+            <p><em>Confronta</em> aggiunge una <strong>zona B</strong> (in arancio) accanto alla A (in ciano).
+              I dati di B compaiono nel pannello di destra, sotto quelli della zona A.</p>
+          </section>
+          <section class="guide-card">
+            <div class="guide-step">5</div>
+            <h3>Leggi il territorio</h3>
+            <p>Il pannello di destra mostra quota e morfologia del punto (DTM) e la posizione della zona nella
+              classifica di circoscrizioni, quartieri e UPL.</p>
+          </section>
+          <section class="guide-card">
+            <div class="guide-step">6</div>
+            <h3>Esporta</h3>
+            <p>Scarica in CSV i <strong>totali della zona</strong> o il <strong>dettaglio per sezione</strong>
+              (separatore <code>;</code>, virgola decimale: si apre direttamente in Excel e LibreOffice).</p>
+          </section>
+        </div>
         <section class="info-section">
-          <h3>Guida all'uso</h3>
-          <p class="info-placeholder">
-            Testo provvisorio. Qui verranno illustrati i pannelli laterali, gli strumenti (reset, poligono,
-            confronto A/B, esportazione CSV), i livelli di densità ed elevazione e i comandi della mappa.
-          </p>
+          <h3>Livelli e comandi della mappa</h3>
+          <ul class="info-list">
+            <li><strong>Barra in basso</strong>: colora gli edifici per densità di popolazione o copertura edificata;
+              <em>Elevazione</em> sovrappone la carta altimetrica.</li>
+            <li><strong>Confini amministrativi</strong>: circoscrizioni (linea continua), quartieri (tratteggio),
+              UPL (punteggiato). Passa il mouse sulla mappa per leggerne il nome.</li>
+            <li><strong>Menu mappa</strong> (pulsante arancio): vista iniziale, base satellitare, schermo intero,
+              vista 3D con rilievo, tema chiaro/scuro, queste informazioni.</li>
+            <li><strong>Pannelli</strong>: apri e chiudi con le linguette laterali; trascina il bordo interno per
+              allargarli.</li>
+            <li><strong>Tastiera</strong>: <kbd>Tab</kbd> per spostarsi tra i comandi, <kbd>←</kbd> <kbd>→</kbd> tra
+              le schede di questo pannello, <kbd>Esc</kbd> per chiuderlo.</li>
+          </ul>
         </section>
       </div>
     </div>
   </div>
 
-  <div id="map-error" class="overlay-message hidden">
-    Errore nel caricamento della mappa. Controlla la console per i dettagli.
+  <div id="probe-hint" class="hint-banner hint-banner--center" role="status">
+    Clicca sulla mappa per attivare l'area di analisi
   </div>
 
-  <div id="probe-hint" class="hint-banner">
-    Clicca sulla mappa per creare un cerchio di analisi
-  </div>
-
-  <div id="chart-panel" class="panel panel-left collapsed">
-    <div id="chart-panel-tab" class="panel-tab" title="Apri/chiudi pannello">&#8249;</div>
-    <div class="panel-resizer"></div>
-    <div class="panel-scroll">
+  <aside id="chart-panel" class="panel panel-left collapsed" aria-label="Analisi demografica">
+    <button type="button" id="chart-panel-tab" class="panel-tab" data-label="Analisi" title="Apri/chiudi il pannello Analisi demografica" aria-label="Apri/chiudi il pannello Analisi demografica" aria-controls="chart-panel-scroll" aria-expanded="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="panel-resizer" aria-hidden="true"></div>
+    <div id="chart-panel-scroll" class="panel-scroll">
       <div class="chart-panel-header">
         <span id="chart-title">Analisi demografica</span>
       </div>
       <div class="chart-panel-body">
         <div class="panel-subheader panel-subheader-first">Argomenti</div>
         <div id="topic-buttons"></div>
-        <button id="btn-toggle-scale" style="display:none" title="Con piu argomenti attivi, usa lo stesso asse (stesso massimo) su tutti i grafici cosi le barre sono comparabili in valore assoluto">Scala: assi indipendenti</button>
+        <button type="button" id="btn-toggle-scale" class="switch hidden" role="switch" aria-checked="false"
+                title="Usa lo stesso massimo su tutti i grafici: le barre diventano confrontabili in valore assoluto">
+          <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+          <span class="switch-label">Stessa scala per tutti i grafici</span>
+        </button>
         <hr class="panel-divider">
         <div class="panel-subheader">Confini amministrativi</div>
-        <div id="confini-buttons"></div>
-        <div class="confini-extra-row">
-          <button id="btn-toggle-sezioni">Sezioni</button>
+        <div id="confini-buttons">
+          <button id="btn-toggle-sezioni" class="confini-btn" title="Confini: Sezioni censuarie"><span class="confini-dot" aria-hidden="true"></span>Sezioni</button>
         </div>
         <hr class="panel-divider">
         <div class="panel-subheader">Strumenti</div>
-        <div class="tools-row">
-          <button id="btn-clear-circle" class="icon-btn" title="Reset — rimuovi le zone di analisi" aria-label="Reset — rimuovi le zone di analisi">&#8635;</button>
+        <div class="tools-row" role="toolbar" aria-label="Strumenti di analisi">
+          <button id="btn-clear-circle" class="icon-btn" title="Reset — rimuovi le zone di analisi" aria-label="Reset — rimuovi le zone di analisi">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4v4.5h4.5"/>
+            </svg>
+          </button>
+          <span class="tools-sep" aria-hidden="true"></span>
           <button id="btn-draw-polygon" class="icon-btn" title="Disegna un poligono di analisi (sostituisce il cerchio)" aria-label="Disegna un poligono di analisi (sostituisce il cerchio)">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">
               <path d="M5 7 12 3.5 20 9 17 19.5 6 18z" stroke-dasharray="3 2"/>
@@ -236,6 +360,7 @@
               <circle cx="15.5" cy="12" r="5.5" stroke-dasharray="3 2"/>
             </svg>
           </button>
+          <span class="tools-sep" aria-hidden="true"></span>
           <button id="btn-export-csv" class="icon-btn" title="Scarica i totali della zona in CSV" aria-label="Scarica i totali della zona in CSV" disabled>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>
@@ -249,20 +374,20 @@
           </button>
         </div>
         <hr class="panel-divider">
-        <div id="kpi-population" class="kpi"></div>
+        <div id="kpi-population" class="kpi" aria-live="polite" aria-atomic="true"></div>
         <div id="missing-badge" class="badge hidden"></div>
         <div id="chart-list"></div>
       </div>
     </div>
-  </div>
+  </aside>
 
-  <div id="punto-panel" class="panel panel-right collapsed">
-    <div id="punto-panel-tab" class="panel-tab" title="Apri/chiudi pannello">&#8250;</div>
-    <div class="panel-resizer"></div>
-    <div class="panel-scroll">
-      <div id="punto-header" class="punto-header">
+  <aside id="punto-panel" class="panel panel-right collapsed" aria-label="Dettaglio zona">
+    <button type="button" id="punto-panel-tab" class="panel-tab" data-label="Dettaglio" title="Apri/chiudi il pannello di dettaglio" aria-label="Apri/chiudi il pannello di dettaglio" aria-controls="punto-panel-scroll" aria-expanded="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+    <div class="panel-resizer" aria-hidden="true"></div>
+    <div id="punto-panel-scroll" class="panel-scroll">
+      <div id="punto-header" class="punto-header punto-header--a">
         <div class="punto-header-text">
-          <div class="punto-header-title">Analisi  DTM</div>
+          <div class="punto-header-title"><span class="zone-chip" aria-hidden="true">A</span>Zona A · Analisi DTM</div>
           <div id="punto-luogo" class="punto-luogo"></div>
           <div id="punto-coords" class="punto-coords"></div>
         </div>
@@ -272,37 +397,41 @@
         </div>
       </div>
       <div id="punto-body" class="punto-body"></div>
-      <div id="compare-header" class="punto-header hidden">
+      <div id="compare-header" class="punto-header punto-header--b hidden">
         <div class="punto-header-text">
-          <div class="punto-header-title">Zona B</div>
+          <div class="punto-header-title"><span class="zone-chip" aria-hidden="true">B</span>Zona B</div>
           <div id="compare-coords" class="punto-coords"></div>
         </div>
       </div>
       <div id="compare-body" class="compare-body hidden">
-        <div id="kpi-population-b" class="kpi"></div>
+        <div id="kpi-population-b" class="kpi" aria-live="polite" aria-atomic="true"></div>
         <div id="missing-badge-b" class="badge hidden"></div>
         <div id="chart-list-b"></div>
       </div>
     </div>
-  </div>
+  </aside>
 
-  <a id="ods-logo" href="https://opendatasicilia.it/" title="Open Data Sicilia" target="_blank" rel="noopener">
+  <a id="ods-logo" href="https://opendatasicilia.it/" title="Open Data Sicilia" target="_blank" rel="noopener noreferrer">
     <img src="img/opendatasicilia.png" alt="Open Data Sicilia">
   </a>
 
-  <div id="legend-panel" class="panel panel-legend hidden">
-    <div class="panel-header">Legenda</div>
+  <div id="legend-panel" class="panel panel-legend hidden" role="region" aria-label="Legenda">
+    <button type="button" id="legend-toggle" class="legend-toggle" aria-expanded="true" aria-controls="legend-content">
+      <span class="panel-header">Legenda</span>
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
     <div id="legend-content"></div>
   </div>
 
-  <div class="panel panel-bottom">
-    <button id="btn-density-none" class="density-btn active">Nessuna densità</button>
-    <button id="btn-density-popolazione" class="density-btn">Densità popolazione</button>
-    <button id="btn-density-edifici" class="density-btn">Densità edifici</button>
-    <button id="btn-toggle-elevazione" class="density-btn">Elevazione</button>
+  <div class="panel panel-bottom" role="toolbar" aria-label="Livelli della mappa">
+    <div role="group" aria-label="Colore degli edifici" class="density-group">
+      <button type="button" id="btn-density-popolazione" class="density-btn">Densità popolazione</button>
+      <button type="button" id="btn-density-edifici" class="density-btn">Densità edifici</button>
+    </div>
+    <button type="button" id="btn-toggle-elevazione" class="density-btn">Elevazione</button>
   </div>
 
-  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pmtiles@3.0.6/dist/pmtiles.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>

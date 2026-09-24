@@ -1,5 +1,26 @@
+import { DATA_COLORS } from './palette.js';
+
 if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
   Chart.register(ChartDataLabels);
+}
+
+const FONT_FAMILY = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+
+// Legge un design token da css/style.css. I canvas non ereditano le variabili
+// CSS, quindi i colori vanno letti qui a ogni build della config (cambio tema
+// compreso). Fuori dal browser (test node) restituisce il fallback.
+function cssVar(name, fallback) {
+  if (typeof document === 'undefined') return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+// Default globali Chart.js (assi, legende, tooltip) allineati al tema corrente.
+export function applyChartTheme() {
+  if (typeof Chart === 'undefined') return;
+  Chart.defaults.font.family = FONT_FAMILY;
+  Chart.defaults.color = cssVar('--text-2', '#4d5875');
+  Chart.defaults.borderColor = cssVar('--border', '#d9deea');
 }
 
 // Numero grande al centro dell'anello (totale) — attivo solo se
@@ -15,11 +36,11 @@ const centerTextPlugin = {
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#1b2436';
-    ctx.font = '700 22px system-ui, sans-serif';
+    ctx.fillStyle = cssVar('--text-1', '#141b2d');
+    ctx.font = `700 22px ${FONT_FAMILY}`;
     ctx.fillText(opts.total, cx, cy - 9);
-    ctx.fillStyle = '#8992a8';
-    ctx.font = '600 10px system-ui, sans-serif';
+    ctx.fillStyle = cssVar('--text-3', '#656f8c');
+    ctx.font = `600 10px ${FONT_FAMILY}`;
     ctx.fillText(opts.label.toUpperCase(), cx, cy + 12);
     ctx.restore();
   }
@@ -64,7 +85,7 @@ function buildRankingListHTML(labels, data, referenceTotal, referenceLabel, shar
       <div class="rank-row rank-reference">
         <span class="rank-num"></span>
         <span class="rank-label">${referenceLabel}</span>
-        <span class="rank-track"><span class="rank-fill" style="width:${Math.round((referenceTotal / maxValue) * 100)}%;background:#8a94ab"></span></span>
+        <span class="rank-track"><span class="rank-fill" style="width:${Math.round((referenceTotal / maxValue) * 100)}%;background:${DATA_COLORS.reference}"></span></span>
         <span class="rank-value">${referenceTotal.toLocaleString('it-IT')}</span>
       </div>`
     : '';
@@ -103,13 +124,13 @@ export function buildChartConfig(topicKey, aggregation, topics, sharedMax, refer
   if (topic.chartType === 'doughnut') {
     const labels = aggregation.labels;
     const data = aggregation.datasets[0].data;
-    const colors = labels.map(l => l === 'Maschi' ? '#4a90d9' : l === 'Femmine' ? '#d94a7a' : '#f5c26b');
+    const colors = labels.map(l => l === 'Maschi' ? DATA_COLORS.male : l === 'Femmine' ? DATA_COLORS.female : DATA_COLORS.other);
     const total = data.reduce((a, b) => a + b, 0);
     return {
       type: 'doughnut',
       data: {
         labels,
-        datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#ffffff' }]
+        datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: cssVar('--surface-2', '#ffffff') }]
       },
       options: {
         responsive: true,
@@ -141,7 +162,7 @@ export function buildChartConfig(topicKey, aggregation, topics, sharedMax, refer
         datasets: aggregation.datasets.map(ds => ({
           label: ds.label,
           data: ds.label === 'Maschi' ? [...ds.data].reverse().map(v => -v) : [...ds.data].reverse(),
-          backgroundColor: ds.label === 'Maschi' ? '#4a90d9' : '#d94a7a',
+          backgroundColor: ds.label === 'Maschi' ? DATA_COLORS.male : DATA_COLORS.female,
           barThickness: 14,
           maxBarThickness: 14
         }))
@@ -179,7 +200,7 @@ export function buildChartConfig(topicKey, aggregation, topics, sharedMax, refer
           },
           datalabels: {
             display: ctx => ctx.dataset.data[ctx.dataIndex] !== 0,
-            color: '#1b2436',
+            color: cssVar('--text-1', '#141b2d'),
             font: { size: 9 },
             formatter: v => Math.abs(v) || '',
             anchor: ctx => pyramidLabelOutside(ctx) ? 'end' : 'center',
@@ -231,4 +252,56 @@ export class ChartController {
         : '';
     }
   }
+}
+
+// Esporta in PNG il grafico di una card: titolo, canvas Chart.js, eventuale
+// legenda HTML dell'anello (ridisegnata) e fonte, su sfondo pieno del tema
+// (il canvas originale è trasparente).
+export function exportChartPng(itemEl, title, filename) {
+  const source = itemEl.querySelector('canvas');
+  if (!source) return;
+  const ratio = source.width / source.clientWidth || 1;
+  const pad = 16 * ratio;
+  const titleH = 28 * ratio;
+  const rowH = 18 * ratio;
+  const footH = 22 * ratio;
+  const legendRows = [...itemEl.querySelectorAll('.doughnut-legend-row')].map(row => ({
+    color: row.querySelector('.doughnut-legend-dot').style.background,
+    text: [...row.querySelectorAll('.doughnut-legend-label, .doughnut-legend-value, .doughnut-legend-pct')]
+      .map(n => n.textContent.trim()).join('   ')
+  }));
+
+  const out = document.createElement('canvas');
+  out.width = source.width + pad * 2;
+  out.height = pad + titleH + source.height + legendRows.length * rowH + footH + pad / 2;
+  const ctx = out.getContext('2d');
+  ctx.fillStyle = cssVar('--surface-1', '#ffffff');
+  ctx.fillRect(0, 0, out.width, out.height);
+
+  ctx.fillStyle = cssVar('--text-1', '#141b2d');
+  ctx.font = `700 ${14 * ratio}px ${FONT_FAMILY}`;
+  ctx.textBaseline = 'top';
+  ctx.fillText(title, pad, pad);
+  ctx.drawImage(source, pad, pad + titleH);
+
+  let y = pad + titleH + source.height + 4 * ratio;
+  ctx.font = `500 ${12 * ratio}px ${FONT_FAMILY}`;
+  for (const row of legendRows) {
+    ctx.fillStyle = row.color;
+    ctx.beginPath();
+    ctx.arc(pad + 5 * ratio, y + 7 * ratio, 5 * ratio, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = cssVar('--text-1', '#141b2d');
+    ctx.fillText(row.text, pad + 16 * ratio, y);
+    y += rowH;
+  }
+
+  ctx.fillStyle = cssVar('--text-3', '#656f8c');
+  ctx.font = `500 ${10 * ratio}px ${FONT_FAMILY}`;
+  ctx.fillText('Fonte: ISTAT, Censimento permanente 2021 · OpenDataSicilia.it', pad, y + 6 * ratio);
+
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = out.toDataURL('image/png');
+  a.click();
 }

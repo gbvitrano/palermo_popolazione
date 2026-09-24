@@ -1,4 +1,5 @@
 import { ringAreaSqMeters, zoneCenter } from './geometry.js';
+import { ZONE_COLORS, zoneFill } from './palette.js';
 
 const CLOSE_TOLERANCE_PX = 10; // click entro questa distanza dal primo vertice chiude il poligono
 const DUPLICATE_TOLERANCE_PX = 3; // vertici così vicini (es. i due click di un doppio click) sono lo stesso punto
@@ -55,20 +56,20 @@ export class PolygonController {
       data: this.ring ? { type: 'FeatureCollection', features: [polygonFeature(this.ring)] } : EMPTY
     });
     // Stesso stile del cerchio (probe.js): riempimento tenue, alone scuro, bordo bianco tratteggiato.
-    this.map.addLayer({ id: `${this.sourceId}-fill`, type: 'fill', source: this.sourceId, paint: { 'fill-color': '#00e5ff', 'fill-opacity': 0.08 } });
-    this.map.addLayer({ id: `${this.sourceId}-halo`, type: 'line', source: this.sourceId, paint: { 'line-color': '#0a1020', 'line-width': 3 } });
-    this.map.addLayer({ id: `${this.sourceId}-border`, type: 'line', source: this.sourceId, paint: { 'line-color': '#ffffff', 'line-width': 1.5, 'line-dasharray': [2, 1.5] } });
+    this.map.addLayer({ id: `${this.sourceId}-fill`, type: 'fill', source: this.sourceId, paint: { 'fill-color': zoneFill(this.label), 'fill-opacity': 0.08 } });
+    this.map.addLayer({ id: `${this.sourceId}-halo`, type: 'line', source: this.sourceId, paint: { 'line-color': ZONE_COLORS.halo, 'line-width': 3 } });
+    this.map.addLayer({ id: `${this.sourceId}-border`, type: 'line', source: this.sourceId, paint: { 'line-color': ZONE_COLORS.border, 'line-width': 1.5, 'line-dasharray': [2, 1.5] } });
 
     this.map.addSource(this.draftSourceId, { type: 'geojson', data: EMPTY });
     this.map.addLayer({
       id: `${this.draftSourceId}-line`, type: 'line', source: this.draftSourceId,
       filter: ['==', ['geometry-type'], 'LineString'],
-      paint: { 'line-color': '#ffffff', 'line-width': 1.5, 'line-dasharray': [2, 1.5] }
+      paint: { 'line-color': ZONE_COLORS.border, 'line-width': 1.5, 'line-dasharray': [2, 1.5] }
     });
     this.map.addLayer({
       id: `${this.draftSourceId}-vertex`, type: 'circle', source: this.draftSourceId,
       filter: ['==', ['geometry-type'], 'Point'],
-      paint: { 'circle-radius': 4, 'circle-color': '#e08a2b', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5 }
+      paint: { 'circle-radius': 4, 'circle-color': ZONE_COLORS.vertex, 'circle-stroke-color': ZONE_COLORS.border, 'circle-stroke-width': 1.5 }
     });
     this._redrawDraft();
   }
@@ -177,6 +178,7 @@ export class PolygonController {
     if (this.label) {
       centerEl.classList.add('probe-handle-labeled');
       centerEl.textContent = this.label;
+      centerEl.classList.add(`probe-handle--${this.label.toLowerCase()}`);
     }
     this.areaLabel = document.createElement('span');
     this.areaLabel.className = 'probe-radius-label';

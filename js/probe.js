@@ -1,3 +1,5 @@
+import { ZONE_COLORS, zoneFill } from './palette.js';
+
 const EARTH_RADIUS_METERS = 6371000;
 
 function circlePolygon(center, radiusMeters, points = 64) {
@@ -75,20 +77,20 @@ export class ProbeController {
       id: `${this.sourceId}-fill`,
       type: 'fill',
       source: this.sourceId,
-      paint: { 'fill-color': '#00e5ff', 'fill-opacity': 0.08 }
+      paint: { 'fill-color': zoneFill(this.label), 'fill-opacity': 0.08 }
     });
     // Alone scuro sotto il bordo ciano: resta leggibile su qualsiasi sfondo/layer.
     this.map.addLayer({
       id: `${this.sourceId}-halo`,
       type: 'line',
       source: this.sourceId,
-      paint: { 'line-color': '#0a1020', 'line-width': 3 }
+      paint: { 'line-color': ZONE_COLORS.halo, 'line-width': 3 }
     });
     this.map.addLayer({
       id: `${this.sourceId}-border`,
       type: 'line',
       source: this.sourceId,
-      paint: { 'line-color': '#ffffff', 'line-width': 1.5, 'line-dasharray': [2, 1.5] }
+      paint: { 'line-color': ZONE_COLORS.border, 'line-width': 1.5, 'line-dasharray': [2, 1.5] }
     });
   }
 
@@ -113,6 +115,7 @@ export class ProbeController {
     if (this.label) {
       centerEl.classList.add('probe-handle-labeled');
       centerEl.textContent = this.label;
+      centerEl.classList.add(`probe-handle--${this.label.toLowerCase()}`);
     }
 
     this.centerMarker = new maplibregl.Marker({ element: centerEl, draggable: true })

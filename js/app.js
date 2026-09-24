@@ -2,14 +2,16 @@ import { INDICATORI_JSON_URL } from './config.js';
 import { MapModule } from './map.js';
 import { ProbeController } from './probe.js';
 import { PolygonController } from './polygon.js';
-import { buildCentroidIndex, filterWithinZone, zoneBBox, zoneCenter } from './geometry.js';
+import { buildCentroidIndex, filterWithinZone, zoneBBox, zoneCenter, ringAreaSqMeters } from './geometry.js';
 import { TOPICS, aggregateTopic } from './topics.js';
-import { ChartController } from './charts.js';
-import { renderPuntoPanel, aggregateAllLevels, renderCircRanking } from './punto.js';
+import { ChartController, applyChartTheme, exportChartPng } from './charts.js';
+import { densityStops, densityLegendStops, confiniStyle, sezioniColors, ELEVATION_STOPS } from './palette.js';
+import { setupAriaSync, setupTablist } from './a11y.js';
+import { setupSheet, resetSnap, sheetInset } from './sheet.js';
+import { renderPuntoPanel, renderPuntoSkeleton, aggregateAllLevels, renderCircRanking } from './punto.js';
 import { findNearestGrigliaPoint } from './griglia.js';
 import { buildZonesCsv, buildSectionsCsv, downloadCsv } from './export.js';
 
-const mapErrorEl = document.getElementById('map-error');
 const probeHintEl = document.getElementById('probe-hint');
 const chartPanelEl = document.getElementById('chart-panel');
 const chartPanelTabEl = document.getElementById('chart-panel-tab');
@@ -20,6 +22,8 @@ const kpiEl = document.getElementById('kpi-population');
 const missingBadgeEl = document.getElementById('missing-badge');
 const topicButtonsEl = document.getElementById('topic-buttons');
 const confiniButtonsEl = document.getElementById('confini-buttons');
+// statico in index.html: renderConfiniButtons svuota il contenitore e lo riaggancia in coda
+const sezioniBtnEl = document.getElementById('btn-toggle-sezioni');
 const legendPanelEl = document.getElementById('legend-panel');
 const legendContentEl = document.getElementById('legend-content');
 const puntoPanelEl = document.getElementById('punto-panel');
@@ -30,8 +34,6 @@ const puntoLuogoEl = document.getElementById('punto-luogo');
 const puntoBodyEl = document.getElementById('punto-body');
 const puntoQuotaBoxEl = document.getElementById('punto-quota-box');
 const puntoQuotaValEl = document.getElementById('punto-quota-val');
-const odsLogoEl = document.getElementById('ods-logo');
-const mapToolbarEl = document.getElementById('map-toolbar');
 const btnCompareEl = document.getElementById('btn-compare');
 const btnPolygonEl = document.getElementById('btn-draw-polygon');
 const btnExportCsvEl = document.getElementById('btn-export-csv');
@@ -43,32 +45,8 @@ const chartListBEl = document.getElementById('chart-list-b');
 const kpiBEl = document.getElementById('kpi-population-b');
 const missingBadgeBEl = document.getElementById('missing-badge-b');
 
-const CONFINI_LABELS = { quartieri: 'Quartieri', circoscrizioni: 'Circoscrizioni', upl: 'UPL' };
-const DENSITY_STOPS_POPOLAZIONE = [
-  { value: '0', color: '#101a33' },
-  { value: '50', color: '#3a4d8f' },
-  { value: '150', color: '#f5c26b' },
-  { value: '400+', color: '#d9534f' }
-];
-const DENSITY_STOPS_EDIFICI = [
-  { value: '0%', color: '#101a33' },
-  { value: '25%', color: '#3a4d8f' },
-  { value: '50%', color: '#f5c26b' },
-  { value: '75%', color: '#d9534f' },
-  { value: '100%', color: '#7a1f1f' }
-];
-const ELEVATION_STOPS = [
-  { value: '≤ 0 m', color: '#00bfbf' },
-  { value: '0 – 50 m', color: '#00cb9b' },
-  { value: '50 – 100 m', color: '#00d777' },
-  { value: '100 – 200 m', color: '#00ef2f' },
-  { value: '200 – 300 m', color: '#22ff00' },
-  { value: '300 – 400 m', color: '#82ff00' },
-  { value: '400 – 500 m', color: '#e2ff00' },
-  { value: '500 – 600 m', color: '#ffdd00' },
-  { value: '600 – 800 m', color: '#fe7f01' },
-  { value: '> 800 m', color: '#141414' }
-];
+const CONFINI_LABELS = { circoscrizioni: 'Circoscrizioni', quartieri: 'Quartieri', upl: 'UPL' };
+const isDarkTheme = () => document.documentElement.getAttribute('data-theme') === 'dark';
 
 let activeTopics = new Set(['popolazione_sesso']);
 let lastSectionIds = [];
@@ -90,7 +68,7 @@ let zoneB = null;
 let zoneA = null; // zona di analisi corrente: { type: 'circle', ... } | { type: 'polygon', ... } | null
 let polygonMode = false; // true: la zona A è un poligono disegnato, il click sulla mappa non crea cerchi
 
-const HINT_CIRCLE = 'Clicca sulla mappa per creare un cerchio di analisi';
+const HINT_CIRCLE = "Clicca sulla mappa per attivare l'area di analisi";
 const HINT_POLYGON = 'Clicca per aggiungere i vertici · doppio click o click sul primo vertice per chiudere · Esc per annullare';
 
 const circleZone = (center, radiusMeters) => (center ? { type: 'circle', center, radiusMeters } : null);
@@ -98,7 +76,38 @@ const polygonZone = ring => (ring ? { type: 'polygon', ring } : null);
 
 // Fabbrica per un pannello di grafici (usata sia per il cerchio A che per il cerchio B):
 // isola gli elementi DOM e lo stato dei controller Chart.js, senza duplicare la logica di rendering.
-function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeEl, kpiLabel }) {
+// KPI in evidenza: chip della zona, etichetta e numero grande formattato.
+// Totali di popolazione dell'ultima render di ciascuna zona: servono al delta B vs A.
+const kpiTotals = { A: null, B: null };
+
+function describeZone(zone) {
+  if (!zone) return '';
+  if (zone.type === 'circle') return `Cerchio · raggio ${Math.round(zone.radiusMeters)} m`;
+  const kmq = ringAreaSqMeters(zone.ring) / 1e6;
+  return `Poligono · ${kmq.toLocaleString('it-IT', { maximumFractionDigits: 2 })} km²`;
+}
+
+// Differenza % di B rispetto ad A, solo con entrambe le zone popolate.
+function kpiDeltaHTML(zoneKey) {
+  const { A, B } = kpiTotals;
+  if (zoneKey !== 'B' || !A || B == null) return '';
+  const pct = ((B - A) / A) * 100;
+  const sign = pct > 0 ? '+' : pct < 0 ? '−' : '±';
+  const text = `${sign}${Math.abs(pct).toLocaleString('it-IT', { maximumFractionDigits: 1 })}% rispetto ad A`;
+  return `<span class="kpi-delta">${text}</span>`;
+}
+
+// KPI in evidenza: chip della zona, etichetta, numero grande, forma della zona e delta.
+function renderKpi(kpiEl, zoneKey, label, value) {
+  kpiTotals[zoneKey] = value;
+  const zone = zoneKey === 'A' ? zoneA : zoneB;
+  kpiEl.innerHTML = `
+    <span class="kpi-label"><span class="zone-chip zone-chip--${zoneKey.toLowerCase()}" aria-hidden="true">${zoneKey}</span>${label}</span>
+    <span class="kpi-value">${Number(value).toLocaleString('it-IT')}</span>
+    <span class="kpi-sub">${describeZone(zone)}${kpiDeltaHTML(zoneKey)}</span>`;
+}
+
+function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeEl, kpiLabel, zoneKey }) {
   const controllers = new Map(); // topicKey -> { controller, wrapperEl }
 
   function ensureSlots() {
@@ -115,14 +124,42 @@ function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeE
       if (!activeTopics.has(key) || controllers.has(key)) continue;
       const itemEl = document.createElement('div');
       itemEl.className = `chart-item ${TOPICS[key].chartType}`.trim();
+      const isCanvas = TOPICS[key].chartType !== 'bar';
+      const infoId = `chart-info-${zoneKey}-${key}`;
       itemEl.innerHTML = `
-        <div class="chart-item-title">${TOPICS[key].label}</div>
+        <div class="chart-item-head">
+          <div class="chart-item-title">${TOPICS[key].label}</div>
+          <div class="chart-item-actions">
+            <button type="button" class="card-action" data-act="info" aria-expanded="false" aria-controls="${infoId}"
+                    title="Cosa misura questo indicatore" aria-label="Informazioni: ${TOPICS[key].label}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.8" r="0.6" fill="currentColor"/></svg>
+            </button>
+            ${isCanvas ? `<button type="button" class="card-action" data-act="png"
+                    title="Scarica il grafico in PNG" aria-label="Scarica in PNG: ${TOPICS[key].label}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>
+            </button>` : ''}
+          </div>
+        </div>
+        <p class="chart-item-info" id="${infoId}" hidden>${TOPICS[key].description || ''}</p>
         <div class="chart-item-card">
           ${TOPICS[key].chartType === 'bar'
             ? '<div class="ranking-list"></div>'
             : `<div class="chart-wrapper"><canvas></canvas></div>${TOPICS[key].chartType === 'doughnut' ? '<div class="doughnut-legend"></div>' : ''}`}
         </div>
       `;
+      itemEl.querySelector('.chart-item-actions').addEventListener('click', (e) => {
+        const btn = e.target.closest('.card-action');
+        if (!btn) return;
+        if (btn.dataset.act === 'info') {
+          const infoEl = itemEl.querySelector('.chart-item-info');
+          infoEl.hidden = !infoEl.hidden;
+          btn.setAttribute('aria-expanded', String(!infoEl.hidden));
+          btn.classList.toggle('active', !infoEl.hidden);
+        } else if (btn.dataset.act === 'png') {
+          const title = `${itemEl.querySelector('.chart-item-title').textContent} — Zona ${zoneKey}`;
+          exportChartPng(itemEl, title, `palermo_${key}_zona-${zoneKey.toLowerCase()}.png`);
+        }
+      });
       chartListEl.appendChild(itemEl);
       controllers.set(key, { controller: new ChartController(itemEl), wrapperEl: itemEl });
     }
@@ -136,7 +173,7 @@ function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeE
           ? TOPICS[[...activeTopics][0]].label
           : 'Analisi demografica';
       }
-      kpiEl.textContent = `${kpiLabel}: 0`;
+      renderKpi(kpiEl, zoneKey, kpiLabel, 0);
       missingBadgeEl.textContent = '0 sezioni nella zona';
       missingBadgeEl.classList.remove('hidden');
       const empty = { labels: [], datasets: [{ label: '', data: [] }], missingCount: 0, totalPopulation: 0 };
@@ -202,7 +239,7 @@ function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeE
         ? TOPICS[[...activeTopics][0]].label
         : 'Analisi demografica';
     }
-    kpiEl.textContent = `${kpiLabel}: ${totalPopulation}`;
+    renderKpi(kpiEl, zoneKey, kpiLabel, totalPopulation);
 
     if (missingCount > 0) {
       missingBadgeEl.textContent = `${missingCount} sezioni senza dati`;
@@ -225,35 +262,35 @@ function offsetEastMeters(center, meters) {
   return [lon + dLon, lat];
 }
 
+// Rampa continua (interpolate lineare in map.js) → barra a gradiente con gli
+// stop nella stessa posizione proporzionale che hanno sulla mappa.
+function gradientLegendHTML(mode) {
+  const isDark = isDarkTheme();
+  const stops = densityStops(mode, isDark);
+  const labels = densityLegendStops(mode, isDark);
+  const max = stops[stops.length - 1][0];
+  const pos = (v) => `${Math.round((v / max) * 1000) / 10}%`;
+  const gradient = stops.map(([v, c]) => `${c} ${pos(v)}`).join(', ');
+  const ticks = stops.map(([v], i) => `<span class="legend-tick" style="left:${pos(v)}">${labels[i].value}</span>`).join('');
+  return `<div class="legend-gradient" style="background:linear-gradient(to right, ${gradient})"></div><div class="legend-ticks">${ticks}</div>`;
+}
+
 function renderLegend() {
   legendContentEl.innerHTML = '';
 
   if (densityMode !== 'none') {
     const isEdifici = densityMode === 'edifici';
-    const stops = isEdifici ? DENSITY_STOPS_EDIFICI : DENSITY_STOPS_POPOLAZIONE;
     const title = document.createElement('div');
     title.className = 'panel-subheader';
-    title.style.marginTop = '0';
-    title.textContent = isEdifici ? 'Copertura edifici (per sezione)' : 'Densità popolazione (per sezione)';
+    title.textContent = isEdifici ? 'Copertura edifici (%)' : 'Densità popolazione (ab/ha)';
     legendContentEl.appendChild(title);
-    for (const stop of stops) {
-      const row = document.createElement('div');
-      row.className = 'legend-row';
-      row.innerHTML = `<span class="legend-swatch" style="background:${stop.color}"></span><span>${stop.value}</span>`;
-      legendContentEl.appendChild(row);
-    }
+    legendContentEl.insertAdjacentHTML('beforeend', gradientLegendHTML(densityMode));
   } else if (spotActive) {
     const title = document.createElement('div');
     title.className = 'panel-subheader';
-    title.style.marginTop = '0';
-    title.textContent = 'Densità popolazione (spot)';
+    title.textContent = 'Densità popolazione nella zona (ab/ha)';
     legendContentEl.appendChild(title);
-    for (const stop of DENSITY_STOPS_POPOLAZIONE) {
-      const row = document.createElement('div');
-      row.className = 'legend-row';
-      row.innerHTML = `<span class="legend-swatch" style="background:${stop.color}"></span><span>${stop.value}</span>`;
-      legendContentEl.appendChild(row);
-    }
+    legendContentEl.insertAdjacentHTML('beforeend', gradientLegendHTML('popolazione'));
   }
 
   if (confiniActiveLevels.size > 0) {
@@ -261,11 +298,11 @@ function renderLegend() {
     title.className = 'panel-subheader';
     title.textContent = 'Confini';
     legendContentEl.appendChild(title);
-    for (const level of confiniActiveLevels) {
-      const style = MapModule.confiniLevels[level];
+    for (const level of Object.keys(CONFINI_LABELS).filter(l => confiniActiveLevels.has(l))) {
+      const style = confiniStyle(level, isDarkTheme());
       const row = document.createElement('div');
       row.className = 'legend-row';
-      row.innerHTML = `<span class="legend-line" style="border-top-color:${style.color}"></span><span>${CONFINI_LABELS[level]}</span>`;
+      row.innerHTML = `<span class="legend-line" style="border-top-color:${style.color};border-top-style:${style.css};border-top-width:${Math.max(2, Math.round(style.width))}px"></span><span>${CONFINI_LABELS[level]}</span>`;
       legendContentEl.appendChild(row);
     }
   }
@@ -289,7 +326,7 @@ function renderLegend() {
 function renderConfiniButtons(mapModule) {
   confiniButtonsEl.innerHTML = '';
   for (const level of Object.keys(CONFINI_LABELS)) {
-    const style = MapModule.confiniLevels[level];
+    const style = confiniStyle(level, isDarkTheme());
     const isActive = confiniActiveLevels.has(level);
     const btn = document.createElement('button');
     btn.className = 'confini-btn';
@@ -312,6 +349,19 @@ function renderConfiniButtons(mapModule) {
     });
     confiniButtonsEl.appendChild(btn);
   }
+  confiniButtonsEl.appendChild(sezioniBtnEl);
+  syncSezioniButton(mapModule);
+}
+
+// "Sezioni" è statico in index.html, ma ha lo stesso aspetto dei bottoni
+// confini: pallino col colore del bordo sezioni, pieno se attivo.
+function syncSezioniButton(mapModule) {
+  const btn = sezioniBtnEl;
+  const color = sezioniColors(isDarkTheme()).border;
+  const dot = btn.querySelector('.confini-dot');
+  dot.style.borderColor = color;
+  dot.style.background = mapModule.sezioniVisible ? color : 'transparent';
+  btn.classList.toggle('active', mapModule.sezioniVisible);
 }
 
 function renderTopicButtons() {
@@ -338,38 +388,80 @@ function renderTopicButtons() {
 // Rirenderizza il pannello A (sempre) e, se attivo, il pannello B — usati dai
 // controlli condivisi tra le due zone (selezione topic, toggle scala assi).
 function renderChart() {
+  // la scala comune ha senso solo con almeno due grafici da confrontare
+  document.getElementById('btn-toggle-scale').classList.toggle('hidden', activeTopics.size < 2);
   if (lastSectionIds.length > 0) chartPanelA.render(lastSectionIds);
   if (compareActive) chartPanelB.render(lastSectionIdsB);
 }
 
-function updateLegendPosition(panelWidth) {
-  legendPanelEl.style.left = `${16 + panelWidth}px`;
-  mapToolbarEl.style.left = `${16 + panelWidth}px`;
+// ── Layout responsive ──
+// desktop (> 899px): pannelli laterali affiancati alla mappa, anche entrambi aperti.
+// compatto (≤ 899px): un solo pannello aperto alla volta.
+// mobile (≤ 640px): i pannelli diventano sheet dal basso (css/style.css).
+const compactMQ = window.matchMedia('(max-width: 899px)');
+const mobileMQ = window.matchMedia('(max-width: 640px)');
+const isOpen = (panelEl) => !panelEl.classList.contains('collapsed');
+
+// Padding della mappa, legenda, toolbar e logo ricavati dallo stato corrente
+// dei pannelli: unico punto di calcolo per tutti i casi (apertura, resize, breakpoint).
+function syncLayout() {
+  const leftW = isOpen(chartPanelEl) ? chartPanelEl.getBoundingClientRect().width : 0;
+  const rightW = isOpen(puntoPanelEl) ? puntoPanelEl.getBoundingClientRect().width : 0;
+  if (mobileMQ.matches) {
+    const sheet = [chartPanelEl, puntoPanelEl].find(isOpen);
+    activeMapModule?.setPadding({ bottom: sheet ? sheetInset(sheet) : 0 });
+    return;
+  }
+  activeMapModule?.setPadding({ left: leftW, right: rightW });
 }
 
-function updateLogoPosition(panelWidth) {
-  odsLogoEl.style.right = `${16 + panelWidth}px`;
+function showPanel(panelEl) {
+  // su mobile uno sheet che si riapre riparte da metà altezza
+  if (mobileMQ.matches && !isOpen(panelEl)) resetSnap(panelEl);
+  panelEl.classList.remove('collapsed');
+  if (compactMQ.matches) {
+    const other = panelEl === chartPanelEl ? puntoPanelEl : chartPanelEl;
+    other.classList.add('collapsed');
+  }
+  syncLayout();
+}
+
+function hidePanel(panelEl) {
+  panelEl.classList.add('collapsed');
+  syncLayout();
+}
+
+function togglePanel(panelEl) {
+  if (isOpen(panelEl)) hidePanel(panelEl);
+  else showPanel(panelEl);
+}
+
+// Sul passaggio a un layout compatto con entrambi i pannelli aperti ne resta uno.
+function onBreakpointChange() {
+  if (compactMQ.matches && isOpen(chartPanelEl) && isOpen(puntoPanelEl)) {
+    puntoPanelEl.classList.add('collapsed');
+  }
+  syncPanelInsets(); // il breakpoint cambia l'ingombro anche se le classi restano uguali
+  syncLayout();
 }
 
 let puntoRequestId = 0;
 let rankStats = null; // popolazione per circoscrizione/quartiere/UPL, calcolata una volta in bootstrap()
 
-function updatePuntoPanel(center) {
+// autoOpen = false: aggiorna i contenuti senza forzare l'apertura del pannello
+// (in layout compatto non si riapre a ogni trascinamento della zona).
+function updatePuntoPanel(center, autoOpen = true) {
   if (!activeMapModule) return;
   if (!center) {
     puntoRequestId++;
-    puntoPanelEl.classList.add('collapsed');
-    activeMapModule.setRightPadding(0);
-    updateLogoPosition(0);
+    hidePanel(puntoPanelEl);
     puntoCoordsEl.textContent = '';
     puntoLuogoEl.textContent = '';
     puntoBodyEl.innerHTML = '';
     puntoQuotaBoxEl.classList.add('hidden');
     return;
   }
-  puntoPanelEl.classList.remove('collapsed');
-  activeMapModule.setRightPadding(puntoPanelEl.getBoundingClientRect().width);
-  updateLogoPosition(puntoPanelEl.getBoundingClientRect().width);
+  if (autoOpen) showPanel(puntoPanelEl);
   puntoCoordsEl.textContent = `${center[1].toFixed(4)}° N  ${center[0].toFixed(4)}° E`;
 
   const luogo = activeMapModule.getLuogoAt(center);
@@ -378,7 +470,13 @@ function updatePuntoPanel(center) {
     : '';
 
   const requestId = ++puntoRequestId;
+  // skeleton solo se la risposta tarda: con le tile già in cache arriva subito
+  // e mostrarlo a ogni trascinamento farebbe solo sfarfallare il pannello
+  const skeletonTimer = setTimeout(() => {
+    if (requestId === puntoRequestId) renderPuntoSkeleton(puntoBodyEl);
+  }, 200);
   findNearestGrigliaPoint(center).then(props => {
+    clearTimeout(skeletonTimer);
     if (requestId !== puntoRequestId) return; // spot spostato/eliminato nel frattempo
     renderPuntoPanel(puntoBodyEl, props, puntoQuotaBoxEl, puntoQuotaValEl);
     renderCircRanking(puntoBodyEl, rankStats, luogo);
@@ -386,6 +484,8 @@ function updatePuntoPanel(center) {
 }
 
 function onZoneAChange(zone) {
+  // in layout compatto i pannelli si aprono da soli solo alla creazione della zona
+  const autoOpen = !compactMQ.matches || !zoneA;
   zoneA = zone;
   const center = zone ? zoneCenter(zone) : null;
   if (activeMapModule) activeMapModule.updateEdificatoSpot('A', zone);
@@ -395,21 +495,18 @@ function onZoneAChange(zone) {
   btnExportCsvEl.disabled = !zone;
   btnExportSezioniCsvEl.disabled = !zone;
   if (!zone && compareActive) setCompareActive(false);
-  if (!compareActive) updatePuntoPanel(center);
+  if (!compareActive) updatePuntoPanel(center, autoOpen);
   if (!zone) {
     lastSectionIds = [];
-    chartPanelEl.classList.add('collapsed');
-    if (activeMapModule) activeMapModule.setLeftPadding(0);
-    updateLegendPosition(0);
+    hidePanel(chartPanelEl);
     if (!polygonA?.isDrawing) probeHintEl.classList.remove('hidden');
     return;
   }
   probeHintEl.classList.add('hidden');
-  chartPanelEl.classList.remove('collapsed');
-  if (activeMapModule) activeMapModule.setLeftPadding(chartPanelEl.getBoundingClientRect().width);
-  updateLegendPosition(chartPanelEl.getBoundingClientRect().width);
+  if (autoOpen) showPanel(chartPanelEl);
   lastSectionIds = filterWithinZone(centroidIndex, zone);
   chartPanelA.render(lastSectionIds);
+  if (compareActive && zoneB) chartPanelB.render(lastSectionIdsB);
 }
 
 function onZoneBChange(zone) {
@@ -438,6 +535,8 @@ function setPolygonMode(active) {
   polygonA.clear();
   onZoneAChange(null);
   probeHintEl.textContent = active ? HINT_POLYGON : HINT_CIRCLE;
+  // al centro solo per il cerchio: durante il disegno del poligono coprirebbe i vertici
+  probeHintEl.classList.toggle('hint-banner--center', !active);
   probeHintEl.classList.remove('hidden');
   if (active) polygonA.startDrawing();
 }
@@ -453,7 +552,7 @@ function setCompareActive(active) {
     puntoBodyEl.classList.add('hidden');
     compareHeaderEl.classList.remove('hidden');
     compareBodyEl.classList.remove('hidden');
-    puntoPanelEl.classList.remove('collapsed');
+    showPanel(puntoPanelEl);
 
     if (zoneA.type === 'polygon') {
       if (!polygonB) {
@@ -478,10 +577,6 @@ function setCompareActive(active) {
         onZoneBChange(circleZone(probeB.center, probeB.radiusMeters));
       }
     }
-
-    const width = puntoPanelEl.getBoundingClientRect().width;
-    activeMapModule.setRightPadding(width);
-    updateLogoPosition(width);
   } else {
     puntoHeaderEl.classList.remove('hidden');
     puntoBodyEl.classList.remove('hidden');
@@ -504,30 +599,106 @@ function exportCsv(kind, buildCsv) {
   downloadCsv(`palermo_${kind}_zona_${zones.length > 1 ? 'A-B' : 'A'}_${stamp}.csv`, buildCsv(sectionsRecords, zones));
 }
 
+// ── Schermata di caricamento ──
+const loaderEl = document.getElementById('app-loader');
+
+function setLoaderStep(step, state, detail = '') {
+  const li = loaderEl.querySelector(`[data-step="${step}"]`);
+  li.dataset.state = state; // active | done | error
+  li.querySelector('.step-detail').textContent = detail;
+}
+
+// pct = 0..1 per una barra determinata, null per l'animazione indeterminata
+function setLoaderProgress(pct) {
+  const bar = loaderEl.querySelector('.app-loader-bar');
+  bar.classList.toggle('indeterminate', pct == null);
+  bar.firstElementChild.style.width = pct == null ? '' : `${Math.round(pct * 100)}%`;
+}
+
+function showLoaderError(message) {
+  loaderEl.classList.add('has-error');
+  const box = loaderEl.querySelector('.app-loader-error');
+  box.querySelector('p').textContent = message;
+  box.hidden = false;
+  loaderEl.setAttribute('role', 'alert');
+  box.querySelector('.app-loader-retry').onclick = () => location.reload();
+}
+
+function hideLoader() {
+  loaderEl.classList.add('done');
+  loaderEl.addEventListener('transitionend', () => loaderEl.remove(), { once: true });
+  setTimeout(() => loaderEl.remove(), 800); // se la transizione è disattivata (movimento ridotto)
+}
+
+// Scarica il JSON indicatori riportando l'avanzamento. Con risposta compressa
+// Content-Length conta i byte compressi, mentre lo stream restituisce quelli
+// decompressi: in quel caso si mostrano solo i MB ricevuti, senza percentuale.
+async function fetchIndicatori(onProgress) {
+  const response = await fetch(INDICATORI_JSON_URL);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const encoded = response.headers.get('Content-Encoding');
+  const total = encoded ? 0 : Number(response.headers.get('Content-Length')) || 0;
+  if (!response.body) return response.json();
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.length;
+    onProgress(received, total);
+  }
+  const bytes = new Uint8Array(received);
+  let offset = 0;
+  for (const c of chunks) { bytes.set(c, offset); offset += c.length; }
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+const formatMB = (bytes) => `${(bytes / 1048576).toLocaleString('it-IT', { maximumFractionDigits: 1 })} MB`;
+
 async function bootstrap() {
   renderTopicButtons();
   chartPanelA = createTopicChartPanel({
-    chartListEl, chartTitleEl, kpiEl, missingBadgeEl, kpiLabel: 'Popolazione nella zona'
+    chartListEl, chartTitleEl, kpiEl, missingBadgeEl, kpiLabel: 'Popolazione nella zona', zoneKey: 'A'
   });
   chartPanelB = createTopicChartPanel({
-    chartListEl: chartListBEl, chartTitleEl: null, kpiEl: kpiBEl, missingBadgeEl: missingBadgeBEl, kpiLabel: 'Popolazione nella zona'
+    chartListEl: chartListBEl, chartTitleEl: null, kpiEl: kpiBEl, missingBadgeEl: missingBadgeBEl, kpiLabel: 'Popolazione nella zona', zoneKey: 'B'
   });
 
-  const response = await fetch(INDICATORI_JSON_URL);
-  sectionsRecords = await response.json();
-  rankStats = aggregateAllLevels(sectionsRecords);
-  centroidIndex = buildCentroidIndex(sectionsRecords, 'SEZ21_ID');
-
+  applyChartTheme();
   const mapModule = new MapModule('map');
   const startDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
+  // Dati e mappa sono indipendenti: si caricano in parallelo.
+  setLoaderProgress(null);
+  const datiPromise = fetchIndicatori((received, total) => {
+    setLoaderStep('dati', 'active', total ? `${Math.round((received / total) * 100)}%` : formatMB(received));
+    if (total) setLoaderProgress(received / total);
+  }).then(records => {
+    setLoaderStep('dati', 'done');
+    return records;
+  }, err => {
+    setLoaderStep('dati', 'error');
+    throw new Error(`Impossibile scaricare i dati del censimento (${err.message}).`);
+  });
+  const mappaPromise = mapModule.init(startDark).then(() => {
+    setLoaderStep('mappa', 'done');
+  }, err => {
+    setLoaderStep('mappa', 'error');
+    throw new Error(`Impossibile caricare la mappa (${err?.message || 'errore di rete'}).`);
+  });
+
   try {
-    await mapModule.init(startDark);
+    [sectionsRecords] = await Promise.all([datiPromise, mappaPromise]);
   } catch (err) {
     console.error(err);
-    mapErrorEl.classList.remove('hidden');
+    showLoaderError(`${err.message} Controlla la connessione e riprova.`);
     return;
   }
+  rankStats = aggregateAllLevels(sectionsRecords);
+  centroidIndex = buildCentroidIndex(sectionsRecords, 'SEZ21_ID');
 
   activeMapModule = mapModule;
   probeA = new ProbeController(mapModule.getMap(), (c, r) => onZoneAChange(circleZone(c, r)), { label: 'A' });
@@ -550,22 +721,27 @@ async function bootstrap() {
   btnCompareEl.addEventListener('click', () => setCompareActive(!compareActive));
   btnExportCsvEl.addEventListener('click', () => exportCsv('totali', buildZonesCsv));
   btnExportSezioniCsvEl.addEventListener('click', () => exportCsv('sezioni', buildSectionsCsv));
+  // Interruttori: click sul pulsante attivo lo spegne (→ 'none'); popolazione ed edifici
+  // colorano lo stesso layer, quindi accenderne uno spegne l'altro.
   const densityButtons = {
-    none: document.getElementById('btn-density-none'),
     popolazione: document.getElementById('btn-density-popolazione'),
     edifici: document.getElementById('btn-density-edifici')
   };
   for (const [mode, btn] of Object.entries(densityButtons)) {
     btn.addEventListener('click', () => {
-      mapModule.setDensityMode(mode);
-      densityMode = mode;
+      const next = densityMode === mode ? 'none' : mode;
+      mapModule.setDensityMode(next);
+      densityMode = next;
       for (const [m, b] of Object.entries(densityButtons)) {
-        b.classList.toggle('active', m === mode);
+        b.classList.toggle('active', m === next);
       }
       renderLegend();
     });
   }
-  document.getElementById('btn-toggle-sezioni').addEventListener('click', () => mapModule.toggleSezioni());
+  sezioniBtnEl.addEventListener('click', () => {
+    mapModule.toggleSezioni();
+    syncSezioniButton(mapModule);
+  });
 
   setupMapToolbar(mapModule);
 
@@ -580,7 +756,6 @@ async function bootstrap() {
   const btnToggleScale = document.getElementById('btn-toggle-scale');
   btnToggleScale.addEventListener('click', () => {
     scaleMode = !scaleMode;
-    btnToggleScale.textContent = scaleMode ? 'Scala: assi condivisi' : 'Scala: assi indipendenti';
     btnToggleScale.classList.toggle('active', scaleMode);
     renderChart();
   });
@@ -588,12 +763,47 @@ async function bootstrap() {
   setupChartPanelControls();
   setupPuntoPanelControls();
   setupInfoPanel();
+  setupLegendToggle();
+  for (const panelEl of [chartPanelEl, puntoPanelEl]) {
+    setupSheet(panelEl, {
+      isActive: () => mobileMQ.matches,
+      onSnap: syncLayout,
+      onClose: () => hidePanel(panelEl)
+    });
+  }
+  setupAriaSync();
 
-  puntoPanelTabEl.addEventListener('click', () => {
-    puntoPanelEl.classList.toggle('collapsed');
-    const width = puntoPanelEl.classList.contains('collapsed') ? 0 : puntoPanelEl.getBoundingClientRect().width;
-    mapModule.setRightPadding(width);
-    updateLogoPosition(width);
+  puntoPanelTabEl.addEventListener('click', () => togglePanel(puntoPanelEl));
+
+  compactMQ.addEventListener('change', onBreakpointChange);
+  mobileMQ.addEventListener('change', onBreakpointChange);
+
+  hideLoader(); // ultimo passo: l'interfaccia è pronta
+}
+
+function setupLegendToggle() {
+  const toggle = document.getElementById('legend-toggle');
+  const apply = (collapsed) => {
+    legendPanelEl.classList.toggle('legend-collapsed', collapsed);
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+  };
+  // Su mobile la legenda copre la mappa: parte chiusa e ricorda una scelta separata dal desktop
+  const storageKey = () => (mobileMQ.matches ? 'legendCollapsedMobile' : 'legendCollapsed');
+  const load = () => {
+    let saved = null;
+    try { saved = localStorage.getItem(storageKey()); } catch (e) {}
+    return saved === null ? mobileMQ.matches : saved === '1';
+  };
+  let collapsed = load();
+  apply(collapsed);
+  toggle.addEventListener('click', () => {
+    collapsed = !collapsed;
+    apply(collapsed);
+    try { localStorage.setItem(storageKey(), collapsed ? '1' : '0'); } catch (e) {}
+  });
+  mobileMQ.addEventListener('change', () => {
+    collapsed = load();
+    apply(collapsed);
   });
 }
 
@@ -639,7 +849,6 @@ function setupMapToolbar(mapModule) {
       } else if (btn.dataset.action === 'toggle3d') {
         const is3D = mapModule.toggle3D();
         btn3D.classList.toggle('active', is3D);
-        btn3D.textContent = is3D ? '3D' : '2D';
       } else if (btn.dataset.action === 'theme') {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         const next = isDark ? 'light' : 'dark';
@@ -648,6 +857,11 @@ function setupMapToolbar(mapModule) {
         try { localStorage.setItem('theme', next); } catch (e) {}
         applyThemeIcon(next === 'dark');
         mapModule.setBaseTheme(next === 'dark');
+        // i canvas Chart.js non ereditano i token CSS: ricostruisce le config col nuovo tema
+        applyChartTheme();
+        renderChart();
+        renderConfiniButtons(mapModule);
+        renderLegend();
       } else if (btn.dataset.action === 'info') {
         setInfoPanelOpen(true);
       }
@@ -671,11 +885,14 @@ function setInfoPanelOpen(open) {
 // Ingombro dei pannelli laterali → variabili CSS usate da #info-panel per
 // centrarsi nello spazio libero. `collapsed` usa translateX, quindi la
 // larghezza resta invariata: un pannello chiuso conta 0.
-function syncInfoPanelInsets() {
-  const occupied = (el) => (el.classList.contains('collapsed') ? 0 : el.offsetWidth);
+// Ingombro laterale dei pannelli → --inset-left / --inset-right su :root.
+// Li usano pannello Info, legenda, toolbar e logo per restare nello spazio libero.
+// Su mobile i pannelli sono sheet in basso: nessun ingombro laterale.
+function syncPanelInsets() {
+  const occupied = (el) => (mobileMQ.matches || el.classList.contains('collapsed') ? 0 : el.offsetWidth);
   const root = document.documentElement.style;
-  root.setProperty('--ip-left', `${occupied(chartPanelEl)}px`);
-  root.setProperty('--ip-right', `${occupied(puntoPanelEl)}px`);
+  root.setProperty('--inset-left', `${occupied(chartPanelEl)}px`);
+  root.setProperty('--inset-right', `${occupied(puntoPanelEl)}px`);
 }
 
 function setupInfoPanel() {
@@ -688,32 +905,28 @@ function setupInfoPanel() {
     if (e.key === 'Escape' && isOpen()) setInfoPanelOpen(false);
   });
 
-  document.getElementById('info-panel-nav').addEventListener('click', (e) => {
-    const btn = e.target.closest('.info-tab');
-    if (!btn) return;
+  const navEl = document.getElementById('info-panel-nav');
+  const activateTab = (btn) => {
     panel.querySelectorAll('.info-tab').forEach((t) => t.classList.toggle('active', t === btn));
     panel.querySelectorAll('.info-pane').forEach((p) => p.classList.toggle('active', p.dataset.tab === btn.dataset.tab));
+  };
+  navEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.info-tab');
+    if (btn) activateTab(btn);
   });
+  setupTablist(navEl, activateTab);
 
   // I pannelli laterali cambiano stato da più punti (linguette, click sulla
   // mappa, resize a trascinamento): osservare class/style li copre tutti.
-  const observer = new MutationObserver(syncInfoPanelInsets);
+  const observer = new MutationObserver(syncPanelInsets);
   for (const el of [chartPanelEl, puntoPanelEl]) {
     observer.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
   }
-  syncInfoPanelInsets();
+  syncPanelInsets();
 }
 
 function setupChartPanelControls() {
-  chartPanelTabEl.addEventListener('click', () => {
-    chartPanelEl.classList.toggle('collapsed');
-    const isOpen = !chartPanelEl.classList.contains('collapsed');
-    const width = isOpen ? chartPanelEl.getBoundingClientRect().width : 0;
-    if (activeMapModule) {
-      activeMapModule.setLeftPadding(width);
-    }
-    updateLegendPosition(width);
-  });
+  chartPanelTabEl.addEventListener('click', () => togglePanel(chartPanelEl));
 
   const PANEL_MIN_WIDTH = 350;
   const PANEL_MAX_WIDTH = 500;
@@ -725,7 +938,6 @@ function setupChartPanelControls() {
     const width = dragStartWidth + (clientX - dragStartX);
     const clamped = Math.min(PANEL_MAX_WIDTH, Math.max(PANEL_MIN_WIDTH, width));
     chartPanelEl.style.width = `${clamped}px`;
-    updateLegendPosition(clamped);
   }
 
   function onDragEnd() {
@@ -733,9 +945,7 @@ function setupChartPanelControls() {
     document.removeEventListener('mouseup', onDragEnd);
     document.removeEventListener('touchmove', onDragMove);
     document.removeEventListener('touchend', onDragEnd);
-    if (activeMapModule && !chartPanelEl.classList.contains('collapsed')) {
-      activeMapModule.setLeftPadding(chartPanelEl.getBoundingClientRect().width);
-    }
+    syncLayout();
   }
 
   function onDragStart(e) {
@@ -765,8 +975,7 @@ function setupPuntoPanelControls() {
     const width = dragStartWidth - (clientX - dragStartX);
     const clamped = Math.min(PANEL_MAX_WIDTH, Math.max(PANEL_MIN_WIDTH, width));
     puntoPanelEl.style.width = `${clamped}px`;
-    if (activeMapModule) activeMapModule.setRightPadding(clamped);
-    updateLogoPosition(clamped);
+    syncLayout();
   }
 
   function onDragEnd() {

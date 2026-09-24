@@ -1,41 +1,24 @@
 import { MAP_STYLE_URL, MAP_STYLE_URL_DARK, PMTILES_URL, CONFINI_PMTILES_URL, EDIFICATO_PMTILES_URL, ELEVAZIONE_TILES_URL, TERRAIN_DEM_TILES_URL } from './config.js';
 import { polygonCentroid, zoneBBox, zoneContains } from './geometry.js';
+import { densityStops, EDIFICATO_NEUTRAL, HILLSHADE_COLORS, sezioniColors, CONFINI_LEVEL_KEYS, confiniStyle } from './palette.js';
 
 const MAP_HOME = { center: [13.3526, 38.1364], zoom: 11, pitch: 0, bearing: 0 };
 const MAP_HOME_3D = { center: [13.3453, 38.13658], zoom: 12.22, pitch: 68, bearing: -90.4 };
 const SATELLITE_TILES = ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
 
-const CONFINI_LEVELS = {
-  quartieri: { color: '#4fd1c5', width: 1.5 },
-  circoscrizioni: { color: '#f5a623', width: 2.5 },
-  upl: { color: '#b980f0', width: 1 }
-};
+// mode = 'none' | 'popolazione' | 'edifici'. Gli edifici dentro uno spot
+// mostrano sempre la densità di popolazione, qualunque sia la modalità attiva.
+function densityExpression(mode, isDark) {
+  const prop = mode === 'edifici' ? 'COP_EDIF_PCT' : 'dens_pop_ha';
+  return ['interpolate', ['linear'], ['coalesce', ['get', prop], 0], ...densityStops(mode, isDark).flat()];
+}
 
-const BASE_COLOR_BY_MODE = {
-  none: '#8a94a8',
-  popolazione: [
-    'interpolate', ['linear'], ['coalesce', ['get', 'dens_pop_ha'], 0],
-    0, '#101a33',
-    50, '#3a4d8f',
-    150, '#f5c26b',
-    400, '#d9534f'
-  ],
-  edifici: [
-    'interpolate', ['linear'], ['coalesce', ['get', 'COP_EDIF_PCT'], 0],
-    0, '#101a33',
-    25, '#3a4d8f',
-    50, '#f5c26b',
-    75, '#d9534f',
-    100, '#7a1f1f'
-  ]
-};
-
-function buildEdificatoColorExpression(mode) {
+function buildEdificatoColorExpression(mode, isDark) {
   return [
     'case',
     ['boolean', ['feature-state', 'inSpot'], false],
-    BASE_COLOR_BY_MODE.popolazione,
-    BASE_COLOR_BY_MODE[mode]
+    densityExpression('popolazione', isDark),
+    mode === 'none' ? EDIFICATO_NEUTRAL : densityExpression(mode, isDark)
   ];
 }
 
@@ -116,9 +99,9 @@ export class MapModule {
           source: 'terrain-dem',
           paint: {
             'hillshade-exaggeration': 0.35,
-            'hillshade-shadow-color': '#283046',
-            'hillshade-highlight-color': '#f5f0e8',
-            'hillshade-accent-color': '#202040',
+            'hillshade-shadow-color': HILLSHADE_COLORS.shadow,
+            'hillshade-highlight-color': HILLSHADE_COLORS.highlight,
+            'hillshade-accent-color': HILLSHADE_COLORS.accent,
             'hillshade-illumination-direction': 180,
             'hillshade-illumination-anchor': 'map'
           }
@@ -152,7 +135,7 @@ export class MapModule {
           source: 'sezioni',
           'source-layer': 'sezioni',
           layout: { visibility: 'none' },
-          paint: { 'fill-color': '#2f4278', 'fill-opacity': 0.15 }
+          paint: { 'fill-color': sezioniColors(this.isDarkTheme).fill, 'fill-opacity': 0.15 }
         });
 
         this.map.addLayer({
@@ -161,7 +144,7 @@ export class MapModule {
           source: 'sezioni',
           'source-layer': 'sezioni',
           layout: { visibility: 'none' },
-          paint: { 'line-color': '#4a5b8f', 'line-width': 0.5 }
+          paint: { 'line-color': sezioniColors(this.isDarkTheme).border, 'line-width': 0.5 }
         });
 
         this.map.addSource('edificato', { type: 'vector', url: `pmtiles://${EDIFICATO_PMTILES_URL}` });
@@ -172,7 +155,7 @@ export class MapModule {
           source: 'edificato',
           'source-layer': 'edificato',
           paint: {
-            'fill-extrusion-color': buildEdificatoColorExpression('none'),
+            'fill-extrusion-color': buildEdificatoColorExpression('none', this.isDarkTheme),
             'fill-extrusion-height': ['coalesce', ['get', 'altezza'], 0],
             'fill-extrusion-base': 0,
             'fill-extrusion-opacity': 0.85
@@ -189,14 +172,17 @@ export class MapModule {
           layout: { visibility: 'visible' },
           paint: { 'fill-opacity': 0 }
         });
-        for (const [level, style] of Object.entries(CONFINI_LEVELS)) {
+        for (const level of CONFINI_LEVEL_KEYS) {
+          const style = confiniStyle(level, this.isDarkTheme);
+          const paint = { 'line-color': style.color, 'line-width': style.width };
+          if (style.dash) paint['line-dasharray'] = style.dash;
           this.map.addLayer({
             id: `confini-${level}`,
             type: 'line',
             source: 'confini',
             'source-layer': level,
             layout: { visibility: 'none' },
-            paint: { 'line-color': style.color, 'line-width': style.width }
+            paint
           });
         }
 
@@ -239,7 +225,7 @@ export class MapModule {
     this.setDensityMode(this.densityMode);
     this.map.setLayoutProperty('sezioni-border', 'visibility', this.sezioniVisible ? 'visible' : 'none');
 
-    for (const level of Object.keys(CONFINI_LEVELS)) {
+    for (const level of CONFINI_LEVEL_KEYS) {
       this.map.setLayoutProperty(`confini-${level}`, 'visibility', this.confiniActiveLevels.has(level) ? 'visible' : 'none');
     }
 
@@ -254,20 +240,19 @@ export class MapModule {
     return this.map;
   }
 
-  setLeftPadding(px) {
-    this._leftPadding = px;
-    this.map.easeTo({ padding: { left: px, top: 0, right: this._rightPadding || 0, bottom: 0 }, duration: 250 });
-  }
-
-  setRightPadding(px) {
-    this._rightPadding = px;
-    this.map.easeTo({ padding: { left: this._leftPadding || 0, top: 0, right: px, bottom: 0 }, duration: 250 });
+  // Area della mappa coperta dai pannelli: il centro visivo (flyTo, zone) si sposta
+  // nella parte libera. Su mobile i pannelli sono in basso, quindi conta `bottom`.
+  setPadding({ left = 0, right = 0, bottom = 0 }) {
+    const p = this._padding || {};
+    if (p.left === left && p.right === right && p.bottom === bottom) return;
+    this._padding = { left, right, bottom };
+    this.map.easeTo({ padding: { left, right, bottom, top: 0 }, duration: 250 });
   }
 
 
   setDensityMode(mode) {
     this.densityMode = mode;
-    this.map.setPaintProperty('edificato-fill', 'fill-extrusion-color', buildEdificatoColorExpression(mode));
+    this.map.setPaintProperty('edificato-fill', 'fill-extrusion-color', buildEdificatoColorExpression(mode, this.isDarkTheme));
     this.map.setLayoutProperty('sezioni-fill', 'visibility', mode === 'none' ? 'visible' : 'none');
   }
 
@@ -413,9 +398,5 @@ export class MapModule {
     }
     this._setRotationEnabled(this.is3D);
     return this.is3D;
-  }
-
-  static get confiniLevels() {
-    return CONFINI_LEVELS;
   }
 }
