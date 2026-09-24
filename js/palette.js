@@ -90,15 +90,17 @@ export function confiniStyle(level, isDark) {
 // ── Elevazione ──
 // Le tile in data/elevazione/ sono raster PNG già colorati: questi stop
 // descrivono quei colori per la legenda e non vanno cambiati senza rigenerare le tile.
+// Rampa ipsometrica (salvia → ocra → terra d'ombra → grigio); la classe > 800 m
+// non compare nelle tile attuali ma resta in legenda per completezza.
 export const ELEVATION_STOPS = [
-  { value: '≤ 0 m', color: '#00bfbf' },
-  { value: '0 – 50 m', color: '#00cb9b' },
-  { value: '50 – 100 m', color: '#00d777' },
-  { value: '100 – 200 m', color: '#00ef2f' },
-  { value: '200 – 300 m', color: '#22ff00' },
-  { value: '300 – 400 m', color: '#82ff00' },
-  { value: '400 – 500 m', color: '#e2ff00' },
-  { value: '500 – 600 m', color: '#ffdd00' },
-  { value: '600 – 800 m', color: '#fe7f01' },
-  { value: '> 800 m', color: '#141414' }
+  { value: '≤ 0 m', color: '#cfe0e3' },
+  { value: '0 – 50 m', color: '#d7e6c4' },
+  { value: '50 – 100 m', color: '#b7cf94' },
+  { value: '100 – 200 m', color: '#e3d49a' },
+  { value: '200 – 300 m', color: '#d4ad6a' },
+  { value: '300 – 400 m', color: '#b98a52' },
+  { value: '400 – 500 m', color: '#9c6b3f' },
+  { value: '500 – 600 m', color: '#7f5a45' },
+  { value: '600 – 800 m', color: '#8f8680' },
+  { value: '> 800 m', color: '#d9d4cf' }
 ];
