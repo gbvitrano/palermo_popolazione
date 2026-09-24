@@ -807,7 +807,26 @@ function setupLegendToggle() {
   });
 }
 
+// Bussola sopra la legenda: compare solo in 3D, l'ago segue il bearing, il clic riallinea a nord
+function setupCompass(mapModule) {
+  const compass = document.getElementById('map-compass');
+  const needle = compass.querySelector('.compass-needle');
+  const map = mapModule.getMap();
+  const update = () => {
+    const bearing = map.getBearing();
+    needle.style.transform = `rotate(${-bearing}deg)`;
+    compass.classList.toggle('hidden', !mapModule.is3D);
+    compass.title = `Riallinea a nord (rotazione ${Math.round(bearing)}°)`;
+    compass.setAttribute('aria-label', compass.title);
+  };
+  map.on('rotate', update);
+  compass.addEventListener('click', () => mapModule.resetNorth());
+  update();
+  return update;
+}
+
 function setupMapToolbar(mapModule) {
+  const updateCompass = setupCompass(mapModule);
   const dialFab = document.getElementById('dial-fab');
   const dialItems = document.getElementById('dial-items');
   const btnFullscreen = document.getElementById('toolbar-fullscreen');
@@ -840,6 +859,7 @@ function setupMapToolbar(mapModule) {
     btn.addEventListener('click', () => {
       if (btn.dataset.action === 'home') {
         mapModule.flyHome();
+        updateCompass();
       } else if (btn.dataset.action === 'satellite') {
         const on = mapModule.toggleSatellite();
         btnSatellite.classList.toggle('active', on);
@@ -849,6 +869,7 @@ function setupMapToolbar(mapModule) {
       } else if (btn.dataset.action === 'toggle3d') {
         const is3D = mapModule.toggle3D();
         btn3D.classList.toggle('active', is3D);
+        updateCompass();
       } else if (btn.dataset.action === 'theme') {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         const next = isDark ? 'light' : 'dark';

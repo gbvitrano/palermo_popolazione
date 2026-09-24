@@ -385,6 +385,11 @@ export class MapModule {
     return this.satelliteOn;
   }
 
+  // Riallinea a nord mantenendo inclinazione e centro (usata dalla bussola)
+  resetNorth() {
+    this.map.easeTo({ bearing: 0, duration: 500 });
+  }
+
   toggle3D() {
     this.is3D = !this.is3D;
     if (this.is3D) {

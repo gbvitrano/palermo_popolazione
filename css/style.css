@@ -653,15 +653,50 @@ html, body {
   color: var(--on-brand);
 }
 
-.panel-legend {
+/* Colonna in basso a sinistra: bussola (solo 3D) sopra la legenda.
+   Il wrapper porta la posizione, così la bussola segue l'altezza variabile della legenda. */
+.map-stack {
+  position: absolute;
   bottom: 96px; /* barra inferiore: 28px + ~52px di altezza + 16px di respiro */
   left: calc(16px + var(--inset-left));
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+  transition: left 0.2s ease;
+}
+.map-stack > * { pointer-events: auto; }
+
+.panel-legend {
+  position: static;
   width: auto;
   min-width: 190px;
   max-width: 240px;
   padding: 10px 12px;
-  transition: left 0.2s ease;
 }
+
+.map-compass {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px var(--shadow-color);
+  color: var(--text-1);
+  cursor: pointer;
+}
+.map-compass:hover { background: var(--surface-3); }
+.map-compass svg { display: block; }
+.compass-needle { transform-origin: 20px 20px; transform-box: view-box; }
+.needle-north { fill: var(--brand-500); }
+.needle-south { fill: var(--text-3); }
+.needle-pin { fill: var(--surface-1); stroke: currentColor; stroke-width: 1; }
+.needle-label { font: 700 6.5px/1 system-ui, sans-serif; fill: currentColor; }
 
 /* ── Pannello Info (basso) ──
    --inset-left/--inset-right = ingombro dei pannelli laterali, scritti da app.js
@@ -1485,7 +1520,7 @@ a.guide-card:focus-visible {
 /* A pannello aperto nascondi gli elementi in basso che finirebbero sotto */
 body:has(#info-panel.open) #ods-logo,
 body:has(#info-panel.open) .panel-bottom,
-body:has(#info-panel.open) #legend-panel {
+body:has(#info-panel.open) .map-stack {
   opacity: 0;
   pointer-events: none;
 }
@@ -2748,11 +2783,15 @@ button.active {
     left: 12px;
   }
 
-  .panel-legend {
+  .map-stack {
     top: calc(112px + env(safe-area-inset-top));
     bottom: auto;
     left: auto;
     right: 12px;
+    align-items: flex-end;
+  }
+
+  .panel-legend {
     min-width: 0;
     max-width: 170px;
   }
