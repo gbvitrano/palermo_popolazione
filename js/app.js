@@ -902,8 +902,10 @@ function setupInfoPanel() {
   document.getElementById('info-panel-handle').addEventListener('click', () => setInfoPanelOpen(!isOpen()));
   document.getElementById('info-panel-close').addEventListener('click', () => setInfoPanelOpen(false));
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isOpen()) setInfoPanelOpen(false);
+    // Esc con il visualizzatore aperto chiude solo quello
+    if (e.key === 'Escape' && isOpen() && !document.getElementById('lightbox').open) setInfoPanelOpen(false);
   });
+  setupGuideLightbox(panel);
 
   const navEl = document.getElementById('info-panel-nav');
   const activateTab = (btn) => {
@@ -932,6 +934,51 @@ function setupInfoPanel() {
     observer.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
   }
   syncPanelInsets();
+}
+
+// Le immagini della Guida si aprono in un <dialog> sopra la pagina invece che
+// in una nuova scheda; i link restano come ripiego senza JS.
+function setupGuideLightbox(panel) {
+  const dialog = document.getElementById('lightbox');
+  const img = document.getElementById('lightbox-img');
+  const caption = document.getElementById('lightbox-caption');
+  let links = [];
+  let index = 0;
+
+  const show = (i) => {
+    index = (i + links.length) % links.length;
+    const link = links[index];
+    const thumb = link.querySelector('img');
+    img.src = link.getAttribute('href');
+    img.alt = thumb?.alt ?? '';
+    const source = link.closest('figure')?.querySelector('figcaption');
+    caption.replaceChildren(...(source ? [...source.childNodes].map((n) => n.cloneNode(true)) : []));
+    dialog.classList.toggle('single', links.length < 2);
+  };
+
+  panel.addEventListener('click', (e) => {
+    const link = e.target.closest('.guide-fig a');
+    if (!link) return;
+    e.preventDefault();
+    links = [...panel.querySelectorAll('.guide-fig a')];
+    show(links.indexOf(link));
+    dialog.showModal();
+  });
+
+  dialog.addEventListener('click', (e) => {
+    const action = e.target.closest('[data-lb]')?.dataset.lb;
+    if (action === 'prev') show(index - 1);
+    else if (action === 'next') show(index + 1);
+    // click su pulsante chiudi o sullo sfondo (fuori da immagine e didascalia)
+    else if (action === 'close' || !e.target.closest('.lightbox-fig')) dialog.close();
+  });
+
+  dialog.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') show(index - 1);
+    else if (e.key === 'ArrowRight') show(index + 1);
+  });
+
+  dialog.addEventListener('close', () => img.removeAttribute('src'));
 }
 
 function setupChartPanelControls() {

@@ -327,8 +327,8 @@
           <h3>Aggregazione degli indicatori</h3>
           <p>
             I valori mostrati sono <strong>somme dei conteggi</strong> delle sezioni incluse. Le percentuali sono calcolate
-            sui totali della zona, non come media delle percentuali di sezione: così le sezioni più popolose pesano
-            di più, come è giusto.
+            sui totali della zona, non come media delle percentuali di sezione: così ogni residente pesa allo
+            stesso modo, qualunque sia la sezione in cui vive.
           </p>
           <div class="info-table-wrap">
             <table class="info-table">
@@ -355,8 +355,8 @@
               (0–14, 15–64, 65+), le uniche che ISTAT incrocia con il sesso per gli stranieri.</li>
             <li><strong>Scala comune</strong>: con più argomenti attivi, l'opzione <em>Scala</em> usa lo stesso
               massimo su tutte le barre, così i valori sono confrontabili in assoluto.</li>
-            <li><strong>Confronto A/B</strong>: la zona B segue esattamente le stesse regole della zona A; le differenze
-              mostrate sono calcolate sui totali delle due zone.</li>
+            <li><strong>Confronto A/B</strong>: la zona B segue esattamente le stesse regole della zona A, quindi i
+              risultati delle due zone sono direttamente confrontabili.</li>
           </ul>
         </section>
 
@@ -907,6 +907,17 @@
     </div>
     <button type="button" id="btn-toggle-elevazione" class="density-btn">Elevazione</button>
   </div>
+
+  <!-- Visualizzatore immagini della Guida -->
+  <dialog id="lightbox" class="lightbox" aria-label="Immagine della guida">
+    <button type="button" class="lightbox-btn lightbox-close" data-lb="close" aria-label="Chiudi">✕</button>
+    <button type="button" class="lightbox-btn lightbox-prev" data-lb="prev" aria-label="Immagine precedente">‹</button>
+    <figure class="lightbox-fig">
+      <img id="lightbox-img" alt="">
+      <figcaption id="lightbox-caption"></figcaption>
+    </figure>
+    <button type="button" class="lightbox-btn lightbox-next" data-lb="next" aria-label="Immagine successiva">›</button>
+  </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pmtiles@3.0.6/dist/pmtiles.js"></script>
