@@ -1,0 +1,9 @@
+export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
+export const MAP_STYLE_URL_DARK = 'https://tiles.openfreemap.org/styles/dark';
+export const PMTILES_URL = 'data/geo_sezioni_2021.pmtiles';
+export const CONFINI_PMTILES_URL = 'data/confini_amministrativi.pmtiles';
+export const EDIFICATO_PMTILES_URL = 'data/edificato.pmtiles';
+export const INDICATORI_JSON_URL = 'data/sezioni_indicatori.json';
+export const ELEVAZIONE_TILES_URL = 'data/elevazione/{z}/{x}/{y}.png';
+export const TERRAIN_DEM_TILES_URL = 'data/terrain/{z}/{x}/{y}.png';
+export const GRIGLIA_TILES_URL = 'data/griglia_pbf/{z}/{x}/{y}.pbf';
