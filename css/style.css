@@ -643,6 +643,8 @@ html, body {
 .dial-items.open .dial-item:nth-child(4) { transition-delay: 0.11s; }
 .dial-items.open .dial-item:nth-child(5) { transition-delay: 0.14s; }
 .dial-items.open .dial-item:nth-child(6) { transition-delay: 0.17s; }
+.dial-items.open .dial-item:nth-child(7) { transition-delay: 0.20s; }
+.dial-items.open .dial-item:nth-child(8) { transition-delay: 0.23s; }
 
 .dial-item:hover {
   background: var(--surface-3);

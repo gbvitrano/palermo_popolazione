@@ -893,23 +893,19 @@ function setupMapToolbar(mapModule) {
   }
   applyThemeIcon(document.documentElement.getAttribute('data-theme') === 'dark');
 
-  function closeDial() {
-    dialFab.classList.remove('open');
-    dialItems.classList.remove('open');
-    dialFab.setAttribute('aria-expanded', 'false');
-  }
   dialFab.addEventListener('click', () => {
     const open = dialItems.classList.toggle('open');
     dialFab.classList.toggle('open', open);
     dialFab.setAttribute('aria-expanded', String(open));
   });
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('#map-toolbar')) closeDial();
-  });
 
   dialItems.querySelectorAll('.dial-item').forEach((btn) => {
     btn.addEventListener('click', () => {
-      if (btn.dataset.action === 'home') {
+      if (btn.dataset.action === 'zoomin') {
+        mapModule.getMap().zoomIn();
+      } else if (btn.dataset.action === 'zoomout') {
+        mapModule.getMap().zoomOut();
+      } else if (btn.dataset.action === 'home') {
         mapModule.flyHome();
         updateCompass();
       } else if (btn.dataset.action === 'satellite') {
@@ -938,7 +934,6 @@ function setupMapToolbar(mapModule) {
       } else if (btn.dataset.action === 'info') {
         setInfoPanelOpen(true);
       }
-      closeDial();
     });
   });
 

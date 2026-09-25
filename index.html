@@ -38,7 +38,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" href="data/sezioni_indicatori.json" as="fetch" crossorigin>
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+   <!--  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css"> -->
+   <link rel="stylesheet" href="css/maplibre-gl.css" />	
+   
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap">
   <link rel="stylesheet" href="css/style.css">
   <script>
@@ -80,6 +82,12 @@
     <div id="dial-items" class="dial-items" role="group" aria-label="Comandi mappa">
       <button id="toolbar-home" class="dial-item" data-action="home" aria-label="Home — torna alla vista iniziale" data-tooltip="Home — torna alla vista iniziale">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 3 3 10h2v10h5v-6h4v6h5V10h2L12 3Z"/></svg>
+      </button>
+      <button id="toolbar-zoomin" class="dial-item" data-action="zoomin" aria-label="Aumenta lo zoom" data-tooltip="Aumenta lo zoom">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button id="toolbar-zoomout" class="dial-item" data-action="zoomout" aria-label="Diminuisci lo zoom" data-tooltip="Diminuisci lo zoom">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
       <button id="toolbar-satellite" class="dial-item" data-action="satellite" aria-label="Mostra/nascondi la base satellitare" data-tooltip="Mostra/nascondi la base satellitare">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="13.5" y="2.5" width="6" height="4" rx="0.8" transform="rotate(45 16.5 4.5)"/><path d="M14.8 6.2 8.5 12.5l3 3 6.3-6.3z"/><path d="M8.5 12.5 4 17M2.5 21.5 4 17M2.5 21.5 7 20"/><path d="M13 5.5 2.5 16" stroke-dasharray="1.6 1.8"/><circle cx="19" cy="19" r="1.4" fill="currentColor" stroke="none"/></svg>
@@ -935,7 +943,8 @@
     <button type="button" class="lightbox-btn lightbox-next" data-lb="next" aria-label="Immagine successiva">›</button>
   </dialog>
 
-  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script> -->
+  <script src="js/maplibre-gl.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pmtiles@3.0.6/dist/pmtiles.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
