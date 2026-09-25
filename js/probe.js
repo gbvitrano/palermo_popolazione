@@ -96,7 +96,9 @@ export class ProbeController {
 
   _handleMapClick(e) {
     if (!this.clickToCreate || this.center) return; // click crea il cerchio solo se non esiste già
-    this.place([e.lngLat.lng, e.lngLat.lat], this.radiusMeters);
+    const center = [e.lngLat.lng, e.lngLat.lat];
+    this.map.flyTo({ center, zoom: 14.5, duration: 800 });
+    this.place(center, this.radiusMeters);
   }
 
   // Crea il cerchio in modo programmatico (non da click), es. il cerchio B in modalità confronto.

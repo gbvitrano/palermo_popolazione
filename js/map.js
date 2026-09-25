@@ -66,7 +66,9 @@ export class MapModule {
         zoom: MAP_HOME.zoom,
         pitch: MAP_HOME.pitch,
         bearing: MAP_HOME.bearing,
-        maxPitch: 70
+        maxPitch: 70,
+        minZoom: 10,
+        maxZoom: 18
       });
 
       this.map.on('load', () => {
