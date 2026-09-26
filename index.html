@@ -468,23 +468,28 @@
             <h3>Oppure disegna</h3>
             <p>Un <strong>poligono</strong> libero per isolati, piazze, quartieri.</p>
           </a>
-          <a class="guide-card" href="#guida-argomenti">
+          <a class="guide-card" href="#guida-territorio">
             <span class="guide-step">3</span>
+            <h3>O scegli un territorio</h3>
+            <p>Circoscrizione, quartiere o UPL da un menu, confini esatti.</p>
+          </a>
+          <a class="guide-card" href="#guida-argomenti">
+            <span class="guide-step">4</span>
             <h3>Scegli gli argomenti</h3>
             <p>Età, stranieri, istruzione, lavoro, famiglie, abitazioni.</p>
           </a>
           <a class="guide-card" href="#guida-confronto">
-            <span class="guide-step">4</span>
+            <span class="guide-step">5</span>
             <h3>Confronta</h3>
             <p>Una <strong>zona B</strong> accanto alla A, con lo scarto in %.</p>
           </a>
           <a class="guide-card" href="#guida-dettaglio">
-            <span class="guide-step">5</span>
+            <span class="guide-step">6</span>
             <h3>Leggi il territorio</h3>
             <p>Quota, morfologia e classifica della zona in città.</p>
           </a>
           <a class="guide-card" href="#guida-esporta">
-            <span class="guide-step">6</span>
+            <span class="guide-step">7</span>
             <h3>Esporta</h3>
             <p>CSV dei totali o delle singole sezioni, PNG dei grafici.</p>
           </a>
@@ -545,8 +550,33 @@
           </div>
         </section>
 
+        <section class="guide-section" id="guida-territorio">
+          <h3><span class="guide-step">3</span>Oppure scegli un territorio</h3>
+          <p>Invece di disegnare, puoi usare direttamente i <strong>confini amministrativi</strong> già caricati
+            nell'app come area di analisi: il perimetro è quello esatto della circoscrizione, del quartiere o
+            dell'UPL scelti, non un cerchio o un poligono approssimato a mano. La sezione <strong>Seleziona
+            territorio</strong> è sotto i pulsanti dei <em>Confini amministrativi</em>, nel pannello di sinistra.</p>
+          <ol class="guide-list guide-list--num">
+            <li>Scegli il <strong>livello</strong> nel primo menu: <em>Circoscrizione</em>, <em>Quartiere</em> o
+              <em>UPL</em>.</li>
+            <li>Scegli il <strong>nome</strong> nel secondo menu: l'area si attiva subito, con lo stesso contorno
+              acceso (ciano per A, arancio per B) del cerchio e del poligono disegnati a mano.</li>
+            <li>Cambiare il livello svuota la selezione, perché l'elenco dei nomi cambia; scegliere un altro nome
+              nello stesso livello sostituisce l'area precedente.</li>
+            <li>Con <em>Confronta</em> attivo (vedi il passo successivo) compare un terzo menu: la <strong>zona
+              B</strong> è un secondo poligono <strong>dello stesso livello</strong> della A, ad esempio due
+              circoscrizioni da mettere a confronto.</li>
+          </ol>
+          <div class="guide-gallery guide-gallery--wide">
+            <figure class="guide-fig guide-fig--full">
+              <a href="img/guida/territorio.webp" target="_blank" rel="noopener"><img src="img/guida/territorio.webp" width="1200" height="750" loading="lazy" alt="Zona A sulla Circoscrizione I e zona B sulla Circoscrizione III, ciascuna con il proprio contorno colorato e i dati nei pannelli laterali"></a>
+              <figcaption>Zona A sulla Circoscrizione I, zona B sulla Circoscrizione III: stesso livello, due poligoni diversi.</figcaption>
+            </figure>
+          </div>
+        </section>
+
         <section class="guide-section" id="guida-argomenti">
-          <h3><span class="guide-step">3</span>Scegli gli argomenti e leggi i grafici</h3>
+          <h3><span class="guide-step">4</span>Scegli gli argomenti e leggi i grafici</h3>
           <p>In cima al pannello <strong>Analisi</strong> ci sono gli <strong>Argomenti</strong>: ognuno aggiunge un
             grafico. Puoi attivarne quanti vuoi; un secondo clic lo spegne.</p>
           <ul class="guide-list">
@@ -582,10 +612,12 @@
         </section>
 
         <section class="guide-section" id="guida-confronto">
-          <h3><span class="guide-step">4</span>Confronta due zone</h3>
+          <h3><span class="guide-step">5</span>Confronta due zone</h3>
           <p>Con un'area attiva premi <em>Confronta</em> (terza icona degli Strumenti, due cerchi). Compare la
-            <strong>zona B</strong>, in arancio, affiancata a est della A con la stessa forma e dimensione; se la A è un
-            poligono, la B ne è una copia. Spostala e ridimensionala con le sue maniglie come la A.</p>
+            <strong>zona B</strong>, in arancio: per un cerchio o un poligono disegnati a mano è una copia della A,
+            affiancata a est con la stessa forma e dimensione, spostabile e ridimensionabile con le sue maniglie. Per
+            una zona A scelta da <em>Seleziona territorio</em> (passo 3), invece, compare un menu per scegliere il
+            secondo poligono, dello stesso livello della A.</p>
           <ul class="guide-list">
             <li>Il pannello di destra passa ai <strong>grafici della zona B</strong>, con gli stessi argomenti della A.</li>
             <li>Accanto al totale di B compare lo <strong>scarto percentuale rispetto ad A</strong> (es. «−23,4% rispetto ad A»).</li>
@@ -600,7 +632,7 @@
         </section>
 
         <section class="guide-section" id="guida-dettaglio">
-          <h3><span class="guide-step">5</span>Leggi il territorio: DTM e classifica</h3>
+          <h3><span class="guide-step">6</span>Leggi il territorio: DTM e classifica</h3>
           <p>Il pannello di destra (<strong>Dettaglio</strong>) descrive il punto centrale dell'area A. L'intestazione riporta
             circoscrizione, quartiere e UPL, le coordinate e la <strong>quota</strong> in metri sul livello del mare.
             Sotto, due gruppi apribili:</p>
@@ -627,7 +659,7 @@
         </section>
 
         <section class="guide-section" id="guida-esporta">
-          <h3><span class="guide-step">6</span>Esporta i dati</h3>
+          <h3><span class="guide-step">7</span>Esporta i dati</h3>
           <figure class="guide-fig guide-fig--inline">
             <img src="img/guida/strumenti.webp" width="350" height="84" loading="lazy" alt="Riga Strumenti: Reset, Poligono, Confronta, CSV totali, CSV sezioni">
             <figcaption>Strumenti, da sinistra: Reset · Poligono · Confronta · CSV totali · CSV sezioni.</figcaption>
@@ -647,7 +679,7 @@
         </section>
 
         <section class="guide-section" id="guida-livelli">
-          <h3><span class="guide-step">7</span>Livelli della mappa</h3>
+          <h3><span class="guide-step">8</span>Livelli della mappa</h3>
           <p>La <strong>barra in basso</strong> colora la città intera, indipendentemente dall'area di analisi:</p>
           <ul class="guide-list">
             <li><strong>Densità popolazione</strong>: ogni edificio prende il colore della densità (ab/ha) della sua sezione.</li>
@@ -671,7 +703,7 @@
         </section>
 
         <section class="guide-section" id="guida-menu">
-          <h3><span class="guide-step">8</span>Menu della mappa e smartphone</h3>
+          <h3><span class="guide-step">9</span>Menu della mappa e smartphone</h3>
           <p>Il pulsante arancio in alto a sinistra apre il <strong>menu</strong> (passa il mouse sulle icone per il nome):</p>
           <ul class="guide-list">
             <li><strong>Home</strong>: torna alla vista iniziale su tutta la città.</li>
@@ -704,7 +736,7 @@
         </section>
 
         <section class="guide-section" id="guida-tastiera">
-          <h3><span class="guide-step">9</span>Tastiera e suggerimenti</h3>
+          <h3><span class="guide-step">10</span>Tastiera e suggerimenti</h3>
           <ul class="guide-list">
             <li><kbd>Tab</kbd> / <kbd>Maiusc</kbd>+<kbd>Tab</kbd> per spostarti tra i comandi, <kbd>Invio</kbd> o
               <kbd>Spazio</kbd> per attivarli.</li>
@@ -823,6 +855,23 @@
         <div class="panel-subheader">Confini amministrativi</div>
         <div id="confini-buttons">
           <button id="btn-toggle-sezioni" class="confini-btn" title="Confini: Sezioni censuarie"><span class="confini-dot" aria-hidden="true"></span>Sezioni</button>
+        </div>
+        <hr class="panel-divider">
+        <div class="panel-subheader">Seleziona territorio</div>
+        <div class="territorio-picker">
+          <select id="territorio-livello" class="territorio-select" aria-label="Livello del confine amministrativo">
+            <option value="circoscrizioni">Circoscrizione</option>
+            <option value="quartieri">Quartiere</option>
+            <option value="upl">UPL</option>
+          </select>
+          <select id="territorio-nome" class="territorio-select" aria-label="Territorio (zona A)">
+            <option value="">Zona A: scegli…</option>
+          </select>
+        </div>
+        <div id="territorio-b-row" class="territorio-picker hidden">
+          <select id="territorio-nome-b" class="territorio-select" aria-label="Territorio (zona B, confronto)">
+            <option value="">Zona B: scegli…</option>
+          </select>
         </div>
         <hr class="panel-divider">
         <div class="panel-subheader">Strumenti</div>

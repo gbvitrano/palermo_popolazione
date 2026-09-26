@@ -94,6 +94,10 @@ const CONFINI_LEVELS = {
 
 export const CONFINI_LEVEL_KEYS = Object.keys(CONFINI_LEVELS);
 
+// Etichetta al singolare di un livello (per "Circoscrizione · I", non "Circoscrizioni · I"):
+// usata da app.js (picker/KPI "Seleziona territorio") ed export.js (colonna Tipo del CSV).
+export const CONFINI_LABEL_SINGULAR = { circoscrizioni: 'Circoscrizione', quartieri: 'Quartiere', upl: 'UPL' };
+
 export function confiniStyle(level, isDark) {
   const s = CONFINI_LEVELS[level];
   return { color: isDark ? s.dark : s.light, width: s.width, dash: s.dash, css: s.css };

@@ -1,5 +1,6 @@
 import { TOPICS, aggregateTopic, toWeightMap } from './topics.js';
 import { zoneCenter, ringAreaSqMeters } from './geometry.js';
+import { CONFINI_LABEL_SINGULAR } from './palette.js';
 
 // Separatore ';' e virgola decimale: formato letto correttamente da Excel/LibreOffice in locale italiano.
 const SEP = ';';
@@ -15,6 +16,7 @@ function decimal(value, digits) {
 
 function zoneDescription(zone) {
   if (zone.type === 'circle') return `Area circolare, raggio ${Math.round(zone.radiusMeters)} m`;
+  if (zone.type === 'boundary') return `${CONFINI_LABEL_SINGULAR[zone.level]}: ${zone.name}`;
   return `Poligono, ${zone.ring.length} vertici`;
 }
 

@@ -1843,6 +1843,28 @@ button {
   font-weight: 700;
 }
 
+.territorio-picker {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.territorio-select {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  padding: 6px 8px;
+  border-radius: var(--radius-m);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+}
+
+.territorio-select:hover {
+  background: var(--surface-3);
+}
+
 .confini-btn {
   display: inline-flex;
   align-items: center;

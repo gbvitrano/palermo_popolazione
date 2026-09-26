@@ -8,6 +8,10 @@ export const PUNTI_10_PMTILES_URL = 'data/punti_pop_10.pmtiles';
 export const PUNTI_1_PMTILES_URL = 'data/punti_pop_1.pmtiles';
 export const PUNTI_ZOOM_SOGLIA = 14;
 export const EDIFICI_ZONA_JSON_URL = 'data/edifici_zona.json';
+// Confini amministrativi come poligoni WGS84 pronti da usare come zona di analisi
+// (non le tile vettoriali di confini_amministrativi.pmtiles, usate solo per il disegno
+// delle linee): vedi scripts/build_confini_zone.py.
+export const CONFINI_ZONE_JSON_URL = 'data/confini_zone.json';
 export const INDICATORI_JSON_URL = 'data/sezioni_indicatori.json';
 export const ELEVAZIONE_TILES_URL = 'data/elevazione/{z}/{x}/{y}.png';
 export const TERRAIN_DEM_TILES_URL = 'data/terrain/{z}/{x}/{y}.png';

@@ -1,6 +1,6 @@
 import { MAP_STYLE_URL, MAP_STYLE_URL_DARK, PMTILES_URL, CONFINI_PMTILES_URL, EDIFICATO_PMTILES_URL, PUNTI_10_PMTILES_URL, PUNTI_1_PMTILES_URL, PUNTI_ZOOM_SOGLIA, ELEVAZIONE_TILES_URL, TERRAIN_DEM_TILES_URL } from './config.js';
 import { polygonCentroid, zoneBBox, zoneContains } from './geometry.js';
-import { densityStops, EDIFICATO_NEUTRAL, HILLSHADE_COLORS, sezioniColors, CONFINI_LEVEL_KEYS, confiniStyle, puntiColors } from './palette.js';
+import { densityStops, EDIFICATO_NEUTRAL, HILLSHADE_COLORS, sezioniColors, CONFINI_LEVEL_KEYS, confiniStyle, puntiColors, zoneFill, ZONE_COLORS } from './palette.js';
 
 const MAP_HOME = { center: [13.3526, 38.1364], zoom: 11, pitch: 0, bearing: 0 };
 const MAP_HOME_3D = { center: [13.3453, 38.13658], zoom: 12.22, pitch: 68, bearing: -90.4 };
@@ -43,6 +43,9 @@ export class MapModule {
     this.spotFeatureIds = { A: new Set(), B: new Set() };
     // ultima zona per spot: serve a ri-applicare l'evidenziazione dopo un reload dello style
     this.spotZones = { A: null, B: null };
+    // ultimo anello evidenziato per "Seleziona territorio" (app.js), stesso motivo dei
+    // spotZones: un reload dello style ricrea le sorgenti custom vuote.
+    this.territorioZones = { A: null, B: null };
     this.confiniTooltip = null;
     this.satelliteOn = false;
     this.baseStyleLayerIds = [];
@@ -220,6 +223,33 @@ export class MapModule {
           });
         }
 
+        // Contorno acceso sul singolo poligono scelto in "Seleziona territorio" (A/B):
+        // a differenza di confini-<livello> sopra, sempre visibili su ogni poligono del
+        // livello, questo evidenzia solo quello scelto come zona di analisi. Stesso
+        // stile fill/halo/border del cerchio/poligono disegnati a mano (probe.js).
+        for (const key of ['A', 'B']) {
+          const sourceId = `territorio-${key.toLowerCase()}`;
+          this.map.addSource(sourceId, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+          this.map.addLayer({
+            id: `${sourceId}-fill`,
+            type: 'fill',
+            source: sourceId,
+            paint: { 'fill-color': zoneFill(key), 'fill-opacity': 0.12 }
+          });
+          this.map.addLayer({
+            id: `${sourceId}-halo`,
+            type: 'line',
+            source: sourceId,
+            paint: { 'line-color': ZONE_COLORS.halo, 'line-width': 4 }
+          });
+          this.map.addLayer({
+            id: `${sourceId}-border`,
+            type: 'line',
+            source: sourceId,
+            paint: { 'line-color': ZONE_COLORS.border, 'line-width': 2 }
+          });
+        }
+
   }
 
   setBaseTheme(isDark) {
@@ -233,7 +263,29 @@ export class MapModule {
       this._addCustomLayers();
       this._restoreLayerState();
       this._restoreSpotHighlight();
+      this._restoreTerritorioOutline();
     });
+  }
+
+  _restoreTerritorioOutline() {
+    for (const key of ['A', 'B']) {
+      if (this.territorioZones[key]) this.setTerritorioOutline(key, this.territorioZones[key]);
+    }
+  }
+
+  // key = 'A' | 'B'; ring = anello aperto [lon,lat] (poligono scelto in "Seleziona
+  // territorio", app.js) o null per nascondere. Non tocca updateEdificatoSpot: quello
+  // evidenzia gli edifici dentro la zona (qualunque forma), questo disegna il contorno
+  // esatto del poligono di confine scelto, che uno spot fatto solo di edifici non rende
+  // leggibile da solo (i vuoti tra edifici non dicono dov'è il vero confine).
+  setTerritorioOutline(key, ring) {
+    this.territorioZones[key] = ring;
+    const source = this.map.getSource(`territorio-${key.toLowerCase()}`);
+    if (!source) return;
+    const data = ring
+      ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[...ring, ring[0]]] } }] }
+      : { type: 'FeatureCollection', features: [] };
+    source.setData(data);
   }
 
   // Il reload dello style ricrea la sorgente 'edificato' e azzera i feature-state 'inSpot'.

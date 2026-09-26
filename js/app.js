@@ -1,11 +1,11 @@
-import { INDICATORI_JSON_URL, EDIFICI_ZONA_JSON_URL } from './config.js';
+import { INDICATORI_JSON_URL, EDIFICI_ZONA_JSON_URL, CONFINI_ZONE_JSON_URL } from './config.js';
 import { MapModule } from './map.js';
 import { ProbeController } from './probe.js';
 import { PolygonController } from './polygon.js';
 import { buildCentroidIndex, filterWithinZone, zoneBBox, zoneCenter, ringAreaSqMeters } from './geometry.js';
 import { TOPICS, aggregateTopic } from './topics.js';
 import { ChartController, applyChartTheme, exportChartPng } from './charts.js';
-import { densityStops, densityLegendStops, confiniStyle, sezioniColors, ELEVATION_STOPS, EDIFICATO_NEUTRAL, puntiColors } from './palette.js';
+import { densityStops, densityLegendStops, confiniStyle, sezioniColors, ELEVATION_STOPS, EDIFICATO_NEUTRAL, puntiColors, CONFINI_LABEL_SINGULAR } from './palette.js';
 import { setupAriaSync, setupTablist } from './a11y.js';
 import { setupSheet, resetSnap, sheetInset } from './sheet.js';
 import { renderPuntoPanel, renderPuntoSkeleton, aggregateAllLevels, renderCircRanking } from './punto.js';
@@ -45,6 +45,10 @@ const compareCoordsEl = document.getElementById('compare-coords');
 const chartListBEl = document.getElementById('chart-list-b');
 const kpiBEl = document.getElementById('kpi-population-b');
 const missingBadgeBEl = document.getElementById('missing-badge-b');
+const territorioLivelloEl = document.getElementById('territorio-livello');
+const territorioNomeEl = document.getElementById('territorio-nome');
+const territorioBRowEl = document.getElementById('territorio-b-row');
+const territorioNomeBEl = document.getElementById('territorio-nome-b');
 
 const CONFINI_LABELS = { circoscrizioni: 'Circoscrizioni', quartieri: 'Quartieri', upl: 'UPL' };
 const isDarkTheme = () => document.documentElement.getAttribute('data-theme') === 'dark';
@@ -72,14 +76,24 @@ let probeB = null;
 let polygonA = null;
 let polygonB = null;
 let zoneB = null;
-let zoneA = null; // zona di analisi corrente: { type: 'circle', ... } | { type: 'polygon', ... } | null
+let zoneA = null; // zona di analisi corrente: { type: 'circle', ... } | { type: 'polygon', ... } | { type: 'boundary', ... } | null
 let polygonMode = false; // true: la zona A è un poligono disegnato, il click sulla mappa non crea cerchi
+// Indice { circoscrizioni:[{name,ring}], quartieri:[...], upl:[...] } per "Seleziona
+// territorio" (vedi CONFINI_ZONE_JSON_URL): caricato in bootstrap() in parallelo al
+// resto (non blocca hideLoader), come EDIFICI_ZONA_JSON_URL.
+let confiniZoneIndex = null;
+let confiniZoneIndexPromise = null;
 
 const HINT_CIRCLE = "Clicca sulla mappa per attivare l'area di analisi";
 const HINT_POLYGON = 'Clicca per aggiungere i vertici · doppio click o click sul primo vertice per chiudere · Esc per annullare';
 
 const circleZone = (center, radiusMeters) => (center ? { type: 'circle', center, radiusMeters } : null);
 const polygonZone = ring => (ring ? { type: 'polygon', ring } : null);
+// entry = { name, ring } da confiniZoneIndex[level] (vedi scripts/build_confini_zone.py).
+// geometry.js dispatcha su zone.type === 'circle' e altrimenti usa zone.ring per
+// qualsiasi altro tipo: non serve toccarlo per farci lavorare filterWithinZone/
+// zoneBBox/zoneContains su questa zona esattamente come su un poligono disegnato a mano.
+const boundaryZone = (level, entry) => (entry ? { type: 'boundary', level, name: entry.name, ring: entry.ring } : null);
 
 // Fabbrica per un pannello di grafici (usata sia per il cerchio A che per il cerchio B):
 // isola gli elementi DOM e lo stato dei controller Chart.js, senza duplicare la logica di rendering.
@@ -90,6 +104,7 @@ const kpiTotals = { A: null, B: null };
 function describeZone(zone) {
   if (!zone) return '';
   if (zone.type === 'circle') return `Area circolare · raggio ${Math.round(zone.radiusMeters)} m`;
+  if (zone.type === 'boundary') return `${CONFINI_LABEL_SINGULAR[zone.level]} · ${zone.name}`;
   const kmq = ringAreaSqMeters(zone.ring) / 1e6;
   return `Poligono · ${kmq.toLocaleString('it-IT', { maximumFractionDigits: 2 })} km²`;
 }
@@ -511,6 +526,59 @@ function updatePuntoPanel(center, autoOpen = true) {
   });
 }
 
+async function ensureConfiniZoneIndex() {
+  if (confiniZoneIndex) return confiniZoneIndex;
+  if (!confiniZoneIndexPromise) {
+    confiniZoneIndexPromise = fetch(CONFINI_ZONE_JSON_URL).then(response => {
+      if (!response.ok) throw new Error(`${CONFINI_ZONE_JSON_URL}: HTTP ${response.status}`);
+      return response.json();
+    });
+  }
+  confiniZoneIndex = await confiniZoneIndexPromise;
+  return confiniZoneIndex;
+}
+
+// Ricostruisce le <option> di un select "territorio" mantenendo, se ancora presente
+// nel nuovo elenco, l'indice già selezionato (usato quando si ripopola per cambio
+// tema/lingua; per un cambio di livello l'indice non è comunque più valido, chi chiama
+// azzera la zona a monte).
+function populateTerritorioOptions(selectEl, entries, placeholder) {
+  const previous = selectEl.value;
+  selectEl.innerHTML = '';
+  selectEl.appendChild(new Option(placeholder, ''));
+  entries.forEach((entry, i) => selectEl.appendChild(new Option(entry.name, String(i))));
+  if (previous !== '' && Number(previous) < entries.length) selectEl.value = previous;
+}
+
+// Ricarica le opzioni di zona A (e di zona B se il suo picker è visibile) per il
+// livello scelto in territorio-livello. Non blocca: mostra "Caricamento…" nel
+// frattempo, così i due select restano usabili appena i dati arrivano.
+async function refreshTerritorioOptions() {
+  const level = territorioLivelloEl.value;
+  const bVisible = !territorioBRowEl.classList.contains('hidden');
+  territorioNomeEl.disabled = true;
+  territorioNomeEl.innerHTML = '';
+  territorioNomeEl.appendChild(new Option('Caricamento…', ''));
+  if (bVisible) {
+    territorioNomeBEl.disabled = true;
+    territorioNomeBEl.innerHTML = '';
+    territorioNomeBEl.appendChild(new Option('Caricamento…', ''));
+  }
+  try {
+    const index = await ensureConfiniZoneIndex();
+    populateTerritorioOptions(territorioNomeEl, index[level], 'Zona A: scegli…');
+    territorioNomeEl.disabled = false;
+    if (bVisible) {
+      populateTerritorioOptions(territorioNomeBEl, index[level], 'Zona B: scegli…');
+      territorioNomeBEl.disabled = false;
+    }
+  } catch (err) {
+    console.warn('Confini amministrativi (selezione territorio) non disponibili:', err);
+    territorioNomeEl.innerHTML = '';
+    territorioNomeEl.appendChild(new Option('Non disponibile', ''));
+  }
+}
+
 // Quote delle sezioni nella zona: per edifici se l'indice è disponibile, altrimenti per centroide.
 function selectZone(zone) {
   const centroidIds = filterWithinZone(centroidIndex, zone);
@@ -523,7 +591,14 @@ function onZoneAChange(zone) {
   const autoOpen = !compactMQ.matches || !zoneA;
   zoneA = zone;
   const center = zone ? zoneCenter(zone) : null;
-  if (activeMapModule) activeMapModule.updateEdificatoSpot('A', zone);
+  if (activeMapModule) {
+    activeMapModule.updateEdificatoSpot('A', zone);
+    activeMapModule.setTerritorioOutline('A', zone?.type === 'boundary' ? zone.ring : null);
+  }
+  // Il select si aggiorna da solo quando è lui a generare la zona (il suo handler
+  // imposta .value prima di chiamare qui); per ogni altra origine (cerchio/poligono
+  // disegnati a mano, reset) la selezione precedente non è più valida.
+  if (zone?.type !== 'boundary') territorioNomeEl.value = '';
   spotActive = !!zone;
   renderLegend();
   btnCompareEl.disabled = !zone;
@@ -546,7 +621,10 @@ function onZoneAChange(zone) {
 
 function onZoneBChange(zone) {
   zoneB = zone;
-  if (activeMapModule) activeMapModule.updateEdificatoSpot('B', zone);
+  if (activeMapModule) {
+    activeMapModule.updateEdificatoSpot('B', zone);
+    activeMapModule.setTerritorioOutline('B', zone?.type === 'boundary' ? zone.ring : null);
+  }
   if (!zone) {
     lastSectionIdsB = new Map();
     compareCoordsEl.textContent = '';
@@ -589,7 +667,15 @@ function setCompareActive(active) {
     compareBodyEl.classList.remove('hidden');
     showPanel(puntoPanelEl);
 
-    if (zoneA.type === 'polygon') {
+    if (zoneA.type === 'boundary') {
+      // Nessuna copia auto-traslata come per cerchio/poligono: la zona B "da confine"
+      // è per definizione un altro poligono dello stesso layer, quindi tocca
+      // all'utente scegliere quale (stesso livello di A, popolato di sotto).
+      territorioBRowEl.classList.remove('hidden');
+      ensureConfiniZoneIndex().then(index => {
+        populateTerritorioOptions(territorioNomeBEl, index[zoneA.level], 'Zona B: scegli…');
+      });
+    } else if (zoneA.type === 'polygon') {
       if (!polygonB) {
         polygonB = new PolygonController(activeMapModule.getMap(), ring => onZoneBChange(polygonZone(ring)), { label: 'B' });
       }
@@ -617,6 +703,8 @@ function setCompareActive(active) {
     puntoBodyEl.classList.remove('hidden');
     compareHeaderEl.classList.add('hidden');
     compareBodyEl.classList.add('hidden');
+    territorioBRowEl.classList.add('hidden');
+    territorioNomeBEl.value = '';
     if (probeB) probeB.clear();
     if (polygonB) polygonB.clear();
     onZoneBChange(null); // clear() non emette: rimuove esplicitamente l'evidenziazione edifici di B
@@ -756,10 +844,44 @@ async function bootstrap() {
       setPolygonMode(false);
     } else {
       probeA.clear();
+      polygonA.clear();
       onZoneAChange(null);
     }
   });
   btnPolygonEl.addEventListener('click', () => setPolygonMode(!polygonMode));
+
+  territorioLivelloEl.addEventListener('change', () => {
+    // Il livello è cambiato: gli indici selezionati nei due select si riferiscono
+    // a un elenco che sta per essere sostituito, quindi non sono più validi.
+    if (zoneA?.type === 'boundary') onZoneAChange(null);
+    else if (compareActive) onZoneBChange(null);
+    refreshTerritorioOptions();
+  });
+
+  territorioNomeEl.addEventListener('change', async () => {
+    if (territorioNomeEl.value === '') { onZoneAChange(null); return; }
+    const level = territorioLivelloEl.value;
+    const index = await ensureConfiniZoneIndex();
+    const entry = index[level][Number(territorioNomeEl.value)];
+    // Uscita "silenziosa" da un eventuale disegno cerchio/poligono in corso: non passa
+    // da setPolygonMode()/dal pulsante reset, che azzererebbero anche questo stesso
+    // select appena valorizzato dalla scelta dell'utente (vedi onZoneAChange).
+    polygonMode = false;
+    btnPolygonEl.classList.remove('active');
+    probeA.clickToCreate = true;
+    probeA.clear();
+    polygonA.clear();
+    onZoneAChange(boundaryZone(level, entry));
+  });
+
+  territorioNomeBEl.addEventListener('change', async () => {
+    if (territorioNomeBEl.value === '') { onZoneBChange(null); return; }
+    const level = territorioLivelloEl.value;
+    const index = await ensureConfiniZoneIndex();
+    onZoneBChange(boundaryZone(level, index[level][Number(territorioNomeBEl.value)]));
+  });
+
+  refreshTerritorioOptions(); // popola subito il menu col livello di default (Circoscrizioni)
 
   btnCompareEl.addEventListener('click', () => setCompareActive(!compareActive));
   btnExportCsvEl.addEventListener('click', () => exportCsv('totali', buildZonesCsv));

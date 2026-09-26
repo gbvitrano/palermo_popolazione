@@ -35,6 +35,7 @@ Tutti i calcoli avvengono nel browser su file statici: non serve un backend, un 
 
 - **Area circolare mobile**: cerchio trascinabile e ridimensionabile (raggio iniziale 250 m, minimo 50 m); grafici e KPI si aggiornano durante il trascinamento
 - **Poligono libero**: area disegnata vertice per vertice (doppio click o click sul primo vertice per chiudere, `Esc` per annullare)
+- **Selezione da confine amministrativo**: circoscrizione, quartiere o UPL scelti da un menu, con il perimetro esatto del poligono invece di un'approssimazione a mano; nel confronto A/B la zona B è un secondo poligono dello stesso livello
 - **Confronto A/B**: due zone affiancate con grafici, KPI e differenze dedicate
 - **Argomenti**: popolazione e sesso, piramide età-sesso, stranieri, nazionalità principali, istruzione, occupazione, famiglie, abitazioni; filtro stranieri e scala comune fra grafici
 - **Pannello territorio**: localizzazione della zona (UPL · quartiere · circoscrizione), indici morfologici del DTM, classifica della popolazione per circoscrizioni, quartieri e UPL
@@ -128,6 +129,9 @@ Il test geometrico, per centroidi ed edifici:
   centroide, confrontata con il raggio.
 - **Poligono** — `filterWithinZone`: prefiltro con il rettangolo di ingombro, poi test punto-in-poligono
   (*ray casting*) in coordinate lon/lat; l'errore planare è trascurabile alla scala urbana.
+- **Confine amministrativo** — stesso codice del poligono: `js/geometry.js` distingue solo il cerchio, per ogni
+  altro tipo di zona usa l'anello esterno del poligono scelto (`data/confini_zone.json`, generato da
+  `scripts/build_confini_zone.py` a partire dai confini sorgente in `dati/`, riproiettati da EPSG:32632 a WGS84).
 - **Aggiornamento**: durante il trascinamento il ricalcolo è limitato a una volta ogni 60 ms. Con 3.600 centroidi
   la scansione lineare è immediata e non serve un indice spaziale.
 
@@ -287,7 +291,8 @@ js/
 data/                   file serviti al browser
   sezioni_indicatori.json         indicatori delle 3.600 sezioni
   geo_sezioni_2021.pmtiles        geometrie delle sezioni
-  confini_amministrativi.pmtiles  circoscrizioni, quartieri, UPL
+  confini_amministrativi.pmtiles  circoscrizioni, quartieri, UPL (linee di confine sulla mappa)
+  confini_zone.json               gli stessi confini come poligoni WGS84 (zona di analisi da menu)
   edificato.pmtiles               edifici con altezza, densità, copertura, residenti stimati
   punti_pop_10.pmtiles            dot density 1:10 (zoom 10–13), italiani/stranieri
   punti_pop_1.pmtiles             dot density 1:1 (zoom 14+), italiani/stranieri
@@ -295,6 +300,7 @@ data/                   file serviti al browser
   elevazione/                     raster di elevazione (TMS)
   terrain/                        rilievo in codifica Terrarium
 dati/                   sorgenti (GeoPackage, GeoJSON, CSV/XLSX indicatori e dizionario)
+scripts/                script di preparazione dati (dasimetria, confini_zone.json)
 img/                    favicon, social card, schermate della guida
 tests/                  test Node (*.test.mjs)
 docs/                   specifiche e piani di sviluppo
