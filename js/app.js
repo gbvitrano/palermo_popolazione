@@ -599,6 +599,13 @@ function onZoneAChange(zone) {
   // imposta .value prima di chiamare qui); per ogni altra origine (cerchio/poligono
   // disegnati a mano, reset) la selezione precedente non è più valida.
   if (zone?.type !== 'boundary') territorioNomeEl.value = '';
+  // Un territorio da confine è mutuamente esclusivo con cerchio/poligono a mano, come
+  // lo sono già cerchio e poligono fra loro (setPolygonMode): finché è attivo, un clic
+  // sulla mappa o il pulsante Poligono non devono poterlo sostituire silenziosamente.
+  // Bisogna passare da Reset, che richiama onZoneAChange(null) e li riabilita qui sotto.
+  const isBoundary = zone?.type === 'boundary';
+  probeA.clickToCreate = !isBoundary && !polygonMode;
+  btnPolygonEl.disabled = isBoundary;
   spotActive = !!zone;
   renderLegend();
   btnCompareEl.disabled = !zone;
@@ -673,7 +680,10 @@ function setCompareActive(active) {
       // all'utente scegliere quale (stesso livello di A, popolato di sotto).
       territorioBRowEl.classList.remove('hidden');
       ensureConfiniZoneIndex().then(index => {
-        populateTerritorioOptions(territorioNomeBEl, index[zoneA.level], 'Zona B: scegli…');
+        // Esclude la A corrente dall'elenco: confrontare un territorio con se stesso
+        // non ha senso e darebbe un delta 0/0 sballato.
+        const options = index[zoneA.level].filter(entry => entry.name !== zoneA.name);
+        populateTerritorioOptions(territorioNomeBEl, options, 'Zona B: scegli…');
       });
     } else if (zoneA.type === 'polygon') {
       if (!polygonB) {
@@ -851,10 +861,12 @@ async function bootstrap() {
   btnPolygonEl.addEventListener('click', () => setPolygonMode(!polygonMode));
 
   territorioLivelloEl.addEventListener('change', () => {
-    // Il livello è cambiato: gli indici selezionati nei due select si riferiscono
-    // a un elenco che sta per essere sostituito, quindi non sono più validi.
+    // Il livello è cambiato: gli indici selezionati nel/i select si riferiscono a un
+    // elenco che sta per essere sostituito, quindi non sono più validi. Azzerare A (se
+    // è lei la zona da confine attiva) chiude anche il confronto ed è quindi l'unico
+    // caso in cui bisogna toccare B: se A non è un territorio, il livello qui non lo
+    // riguarda affatto (B, quando esiste, è un cerchio/poligono indipendente).
     if (zoneA?.type === 'boundary') onZoneAChange(null);
-    else if (compareActive) onZoneBChange(null);
     refreshTerritorioOptions();
   });
 
@@ -868,17 +880,38 @@ async function bootstrap() {
     // select appena valorizzato dalla scelta dell'utente (vedi onZoneAChange).
     polygonMode = false;
     btnPolygonEl.classList.remove('active');
-    probeA.clickToCreate = true;
     probeA.clear();
     polygonA.clear();
-    onZoneAChange(boundaryZone(level, entry));
+    const zone = boundaryZone(level, entry);
+    onZoneAChange(zone); // disabilita clickToCreate/btnPolygonEl per la zona boundary appena creata
+    // A differenza del clic sulla mappa (che parte già dal punto voluto), il territorio
+    // scelto da menu può trovarsi ovunque in città: la mappa deve seguirlo.
+    if (activeMapModule) activeMapModule.fitToBounds(zoneBBox(zone));
+    // A è cambiata mentre il confronto era già attivo: la B precedente potrebbe essere
+    // proprio la nuova A (o comunque va ridata scegliere), quindi si azzera e si
+    // rigenera l'elenco escludendo la A appena scelta.
+    if (compareActive && !territorioBRowEl.classList.contains('hidden')) {
+      onZoneBChange(null);
+      const options = index[level].filter(e => e.name !== entry.name);
+      populateTerritorioOptions(territorioNomeBEl, options, 'Zona B: scegli…');
+    }
   });
 
   territorioNomeBEl.addEventListener('change', async () => {
     if (territorioNomeBEl.value === '') { onZoneBChange(null); return; }
     const level = territorioLivelloEl.value;
     const index = await ensureConfiniZoneIndex();
-    onZoneBChange(boundaryZone(level, index[level][Number(territorioNomeBEl.value)]));
+    const zone = boundaryZone(level, index[level][Number(territorioNomeBEl.value)]);
+    onZoneBChange(zone);
+    // Inquadra entrambi i territori (non solo B): il confronto richiede vederli insieme.
+    if (activeMapModule && zoneA) {
+      const [aMinLon, aMinLat, aMaxLon, aMaxLat] = zoneBBox(zoneA);
+      const [bMinLon, bMinLat, bMaxLon, bMaxLat] = zoneBBox(zone);
+      activeMapModule.fitToBounds([
+        Math.min(aMinLon, bMinLon), Math.min(aMinLat, bMinLat),
+        Math.max(aMaxLon, bMaxLon), Math.max(aMaxLat, bMaxLat)
+      ]);
+    }
   });
 
   refreshTerritorioOptions(); // popola subito il menu col livello di default (Circoscrizioni)

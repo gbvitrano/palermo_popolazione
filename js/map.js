@@ -327,6 +327,24 @@ export class MapModule {
     return this.map;
   }
 
+  // Centra/zooma la mappa sul poligono di confine appena scelto in "Seleziona
+  // territorio" (app.js): a differenza del cerchio/poligono disegnati a mano, che
+  // partono già dove l'utente ha cliccato, un territorio scelto da menu può essere
+  // ovunque in città e restare fuori dalla vista corrente. bbox = [minLon, minLat,
+  // maxLon, maxLat] (zoneBBox in geometry.js). Il padding fisso si somma a quello dei
+  // pannelli aperti (this._padding, aggiornato da setPadding): altrimenti il poligono
+  // finirebbe centrato sull'area libera ma con un bordo incollato al pannello.
+  fitToBounds([minLon, minLat, maxLon, maxLat], extraPadding = 48) {
+    const base = this._padding || { left: 0, right: 0, bottom: 0 };
+    const padding = {
+      top: extraPadding,
+      bottom: base.bottom + extraPadding,
+      left: base.left + extraPadding,
+      right: base.right + extraPadding
+    };
+    this.map.fitBounds([[minLon, minLat], [maxLon, maxLat]], { padding, duration: 700, maxZoom: 17 });
+  }
+
   // Area della mappa coperta dai pannelli: il centro visivo (flyTo, zone) si sposta
   // nella parte libera. Su mobile i pannelli sono in basso, quindi conta `bottom`.
   setPadding({ left = 0, right = 0, bottom = 0 }) {
