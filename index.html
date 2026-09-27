@@ -155,6 +155,12 @@
             variabili censuarie e basi territoriali per sezione di censimento (3.600 sezioni nel Comune di Palermo, 3.079 con dati di popolazione).
             Confini di circoscrizioni, quartieri e UPL: Comune di Palermo.
           </p>
+          <p>
+            <a class="info-link" href="https://cruscotto-italia.dati.gov.it/comune.html?istat=082053#censimento"
+               target="_blank" rel="noopener noreferrer"
+               title="Cruscotto Statistico Comunale, dati.gov.it — profilo di Palermo (ISTAT 082053)">Cruscotto Statistico Comunale — dati.gov.it</a>:
+            aggiornamento 2023 delle variabili censuarie per sezione, usato per il confronto di tendenza 2021→2023 nei grafici.
+          </p>
         </section>
         <section class="info-section">
           <h3>Crediti</h3>
@@ -246,6 +252,11 @@
                   <td>Basi territoriali (sezioni 2021)</td>
                   <td>ISTAT</td>
                   <td>Geometrie delle sezioni, centroidi, superfici</td>
+                </tr>
+                <tr>
+                  <td>Variabili censuarie per sezione, aggiornamento 2023</td>
+                  <td><a class="info-link" href="https://cruscotto-italia.dati.gov.it/comune.html?istat=082053#censimento" target="_blank" rel="noopener noreferrer">Cruscotto Statistico Comunale — dati.gov.it</a></td>
+                  <td>Badge e modale di confronto di tendenza 2021→2023 nei grafici</td>
                 </tr>
                 <tr>
                   <td>Circoscrizioni, quartieri, UPL</td>
@@ -349,7 +360,9 @@
                 <tr><td>Stranieri</td><td><code>ST1</code> <code>ST3</code>–<code>ST5</code> <code>ST16</code> <code>ST19</code></td><td>Totale, UE, extra-UE, tre fasce d'età</td></tr>
                 <tr><td>Nazionalità principali</td><td><code>CIT_1</code>–<code>CIT_10</code></td><td>Le 10 cittadinanze straniere più presenti</td></tr>
                 <tr><td>Istruzione</td><td><code>P86</code>–<code>P90</code></td><td>Titolo di studio più alto, residenti di 9 anni e più</td></tr>
+                <tr><td>Istruzione per sesso</td><td><code>P91</code>–<code>P100</code></td><td>Stesso titolo di studio, diviso maschi/femmine</td></tr>
                 <tr><td>Occupazione</td><td><code>P101</code>–<code>P103</code></td><td>Occupati di 15–64 anni, totali e per sesso</td></tr>
+                <tr><td>Stranieri: età, cittadinanza e occupazione</td><td><code>ST17</code> <code>ST18</code> <code>ST20</code> <code>ST21</code> <code>ST22</code>–<code>ST24</code> <code>ST31</code>–<code>ST33</code></td><td>UE/extra-UE per sesso, tre fasce d'età, occupati per sesso</td></tr>
                 <tr><td>Famiglie</td><td><code>PF3</code>–<code>PF8</code></td><td>Famiglie da 1 a 6 e più componenti</td></tr>
                 <tr><td>Abitazioni</td><td><code>A2</code> <code>A3</code> <code>A8</code></td><td>Occupate, vuote o occupate da non residenti, totali</td></tr>
               </tbody>
@@ -456,6 +469,11 @@
           di sinistra, <strong>leggi i risultati</strong> nei grafici e nel pannello di destra. Qui sotto trovi il percorso
           rapido e, più in basso, ogni funzione spiegata passo per passo con le schermate dell'applicazione.
         </p>
+
+        <p class="guide-note">Il cerchio e il poligono funzionano solo dove ci sono <strong>sezioni di censimento</strong>: mare,
+          campagna fuori città o aree senza edifici non hanno dati da mostrare. Se ti capita, non è un errore — un
+          avviso rosso te lo segnala: sposta l'area su un punto dentro il <strong>confine amministrativo di Palermo</strong>,
+          su una zona edificata, e i grafici ricompaiono subito.</p>
 
         <nav class="guide-grid" aria-label="Percorso rapido">
           <a class="guide-card" href="#guida-area">
@@ -591,6 +609,10 @@
               degli assi per confrontare le barre in valore assoluto.</li>
             <li>Ogni scheda ha <strong>ⓘ</strong> (cosa misura l'indicatore, con i codici ISTAT) e <strong>↓</strong>
               (scarica il grafico in PNG).</li>
+            <li>Se il livello scelto ha un aggiornamento 2023, la scheda mostra anche il badge di
+              <strong>tendenza</strong> (▲/▼/≈ e percentuale rispetto al 2021) e il terzo pulsante
+              <strong>"Confronta 2021 e 2023"</strong> apre una finestra con i due anni affiancati e lo scarto
+              per ogni categoria.</li>
           </ul>
           <p>Sotto gli strumenti trovi il <strong>totale dei residenti</strong> nella zona, il tipo di area e,
             in arancio, quante <strong>sezioni senza dati</strong> ricadono nell'area: sono sezioni per cui il dataset
@@ -607,6 +629,10 @@
             <figure class="guide-fig">
               <a href="img/guida/grafici.webp" target="_blank" rel="noopener"><img src="img/guida/grafici.webp" width="350" height="467" loading="lazy" alt="Totale della zona, sezioni senza dati e grafico Stranieri con barre per totale, extra-UE, UE e fasce d'età"></a>
               <figcaption>Totale della zona e grafico <em>Stranieri</em>.</figcaption>
+            </figure>
+            <figure class="guide-fig">
+              <a href="img/guida/tendenza.webp" target="_blank" rel="noopener"><img src="img/guida/tendenza.webp" width="350" height="467" loading="lazy" alt="Scheda Popolazione totale & sesso del quartiere Altarello con badge di tendenza +1,6% e il pulsante Confronta 2021 e 2023, terza icona a destra del badge"></a>
+              <figcaption>Badge di tendenza e pulsante <em>Confronta 2021 e 2023</em> (terza icona) sulla scheda del grafico.</figcaption>
             </figure>
           </div>
         </section>
@@ -644,7 +670,8 @@
             <li><strong>Posizione in classifica</strong>: la popolazione residente di tutte le
               <strong>circoscrizioni</strong>, dei <strong>quartieri</strong> o delle <strong>UPL</strong> (scegli il livello
               con i tre pulsanti). Le barre separano italiani e stranieri, la colonna <em>% str.</em> dà la quota di
-              stranieri e la riga della zona in cui cade il punto è evidenziata.</li>
+              stranieri e la riga della zona in cui cade il punto è evidenziata. Dove disponibile, ogni riga e il
+              totale città portano anche il badge di <strong>tendenza 2021→2023</strong>.</li>
           </ul>
           <div class="guide-gallery guide-gallery--tall">
             <figure class="guide-fig">
@@ -652,8 +679,8 @@
               <figcaption>Intestazione e scheda DTM.</figcaption>
             </figure>
             <figure class="guide-fig">
-              <a href="img/guida/classifica.webp" target="_blank" rel="noopener"><img src="img/guida/classifica.webp" width="340" height="453" loading="lazy" alt="Classifica delle circoscrizioni per popolazione con la Circoscrizione I evidenziata"></a>
-              <figcaption>Classifica: evidenziata la circoscrizione del punto.</figcaption>
+              <a href="img/guida/classifica.webp" target="_blank" rel="noopener"><img src="img/guida/classifica.webp" width="340" height="453" loading="lazy" alt="Classifica delle circoscrizioni per popolazione con badge di tendenza 2021-2023 su ogni riga"></a>
+              <figcaption>Classifica con i badge di tendenza 2021→2023 su ogni riga.</figcaption>
             </figure>
           </div>
         </section>
@@ -852,23 +879,29 @@
           <span class="switch-label">Stessa scala per tutti i grafici</span>
         </button>
         <hr class="panel-divider">
-        <div class="panel-subheader">Confini amministrativi</div>
-        <div id="confini-buttons">
-          <button id="btn-toggle-sezioni" class="confini-btn" title="Confini: Sezioni censuarie"><span class="confini-dot" aria-hidden="true"></span>Sezioni</button>
-        </div>
+        <details class="topic-group">
+          <summary>Confini amministrativi</summary>
+          <div id="confini-buttons" class="topic-group-list">
+            <button id="btn-toggle-sezioni" class="confini-btn" title="Confini: Sezioni censuarie"><span class="confini-dot" aria-hidden="true"></span>Sezioni</button>
+          </div>
+        </details>
         <hr class="panel-divider">
         <div class="panel-subheader">Seleziona territorio</div>
-        <div class="territorio-picker">
+        <div class="territorio-picker territorio-picker--level">
           <select id="territorio-livello" class="territorio-select" aria-label="Livello del confine amministrativo">
             <option value="circoscrizioni">Circoscrizione</option>
             <option value="quartieri">Quartiere</option>
             <option value="upl">UPL</option>
           </select>
+        </div>
+        <div class="territorio-picker">
+          <span class="zone-chip zone-chip--a" aria-hidden="true">A</span>
           <select id="territorio-nome" class="territorio-select" aria-label="Territorio (zona A)">
             <option value="">Zona A: scegli…</option>
           </select>
         </div>
         <div id="territorio-b-row" class="territorio-picker hidden">
+          <span class="zone-chip zone-chip--b" aria-hidden="true">B</span>
           <select id="territorio-nome-b" class="territorio-select" aria-label="Territorio (zona B, confronto)">
             <option value="">Zona B: scegli…</option>
           </select>
@@ -990,6 +1023,23 @@
       <figcaption id="lightbox-caption"></figcaption>
     </figure>
     <button type="button" class="lightbox-btn lightbox-next" data-lb="next" aria-label="Immagine successiva">›</button>
+  </dialog>
+
+  <!-- Confronto di tendenza 2021 vs 2023 per un singolo topic -->
+  <dialog id="compare-modal" class="compare-modal" aria-label="Confronto 2021 e 2023">
+    <button type="button" class="compare-modal-close" data-cm="close" aria-label="Chiudi">✕</button>
+    <h3 id="compare-modal-title" class="compare-modal-title"></h3>
+    <div class="compare-modal-body">
+      <div class="compare-col">
+        <div class="compare-col-head">2021</div>
+        <div id="compare-col-2021" class="chart-item-card"></div>
+      </div>
+      <div class="compare-col">
+        <div class="compare-col-head">2023</div>
+        <div id="compare-col-2023" class="chart-item-card"></div>
+      </div>
+    </div>
+    <div id="compare-modal-diff" class="compare-diff"></div>
   </dialog>
 
   <!-- <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script> -->

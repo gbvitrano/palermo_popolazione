@@ -7,6 +7,11 @@ calcolato sulle **sezioni di censimento ISTAT 2021**: 3.600 sezioni nel Comune, 
 
 Tutti i calcoli avvengono nel browser su file statici: non serve un backend, un database o un tile server.
 
+> Cerchio e poligono funzionano solo dove esistono sezioni di censimento: mare, campagna fuori città o aree senza
+> edifici non hanno dati da mostrare. In quel caso l'app non si blocca — segnala l'area vuota con un avviso e
+> basta spostare cerchio o poligono su un punto dentro il confine amministrativo di Palermo, su una zona
+> edificata, perché i grafici ricompaiano.
+
 ---
 
 ## Indice
@@ -20,6 +25,7 @@ Tutti i calcoli avvengono nel browser su file statici: non serve un backend, un 
   - [Aggregazione degli indicatori](#aggregazione-degli-indicatori)
   - [Densità e copertura edificata](#densità-e-copertura-edificata)
   - [Classifiche territoriali](#classifiche-territoriali)
+  - [Tendenza 2021→2023](#tendenza-20212023)
   - [Analisi DTM](#analisi-dtm)
   - [Esportazione CSV](#esportazione-csv)
   - [Limiti](#limiti)
@@ -37,6 +43,7 @@ Tutti i calcoli avvengono nel browser su file statici: non serve un backend, un 
 - **Poligono libero**: area disegnata vertice per vertice (doppio click o click sul primo vertice per chiudere, `Esc` per annullare)
 - **Selezione da confine amministrativo**: circoscrizione, quartiere o UPL scelti da un menu, con il perimetro esatto del poligono invece di un'approssimazione a mano; nel confronto A/B la zona B è un secondo poligono dello stesso livello
 - **Confronto A/B**: due zone affiancate con grafici, KPI e differenze dedicate
+- **Tendenza 2021→2023**: badge ▲/▼/≈ su classifica territoriale e su ogni grafico (pulsante dedicato), con modale di dettaglio che affianca i due anni categoria per categoria
 - **Argomenti**: popolazione e sesso, piramide età-sesso, stranieri, nazionalità principali, istruzione, occupazione, famiglie, abitazioni; filtro stranieri e scala comune fra grafici
 - **Pannello territorio**: localizzazione della zona (UPL · quartiere · circoscrizione), indici morfologici del DTM, classifica della popolazione per circoscrizioni, quartieri e UPL
 - **Livelli**: edifici 3D colorati per densità di popolazione o copertura edificata, elevazione, sezioni censuarie, confini amministrativi
@@ -69,6 +76,7 @@ Il flusso ha quattro fasi:
 |------|-------|-----------------|---------|
 | Variabili censuarie per sezione | [ISTAT — Censimento permanente 2021](https://www.istat.it/notizia/basi-territoriali-e-variabili-censuarie/) | Indicatori dei grafici e dei CSV | CC BY 4.0 |
 | Basi territoriali, sezioni 2021 | ISTAT | Geometrie, centroidi, superfici | CC BY 4.0 |
+| Variabili censuarie per sezione, aggiornamento 2023 | [Cruscotto Statistico Comunale — dati.gov.it](https://cruscotto-italia.dati.gov.it/comune.html?istat=082053#censimento) | Badge e modale di confronto di tendenza 2021→2023 nei grafici | CC BY 4.0 |
 | Circoscrizioni, quartieri, UPL | Comune di Palermo | Confini, classifiche, localizzazione | open data |
 | Edificato 3D (111.844 edifici) | Volumetria comunale 2006, Overture Maps, Global Building Atlas (DLR/TUM), OpenBuildingMap | Edifici estrusi e colorati per densità | varie licenze aperte |
 | Modello digitale del terreno | [HR-DTM-5m, IRPI-CNR](https://doi.org/10.5281/zenodo.18872933) (Panza et al., 2026) | Rilievo 3D, elevazione, indici DTM | CC BY 4.0 |
@@ -147,7 +155,9 @@ calcolate sui totali della zona, non come media delle percentuali di sezione.
 | Stranieri | `ST1` `ST16` `ST19` `ST3`–`ST5` | Totale, UE, extra-UE, fasce 0–29 / 30–54 / 55+ |
 | Nazionalità principali | `CIT_1_BGD` … `CIT_10_NGA` | Le 10 cittadinanze straniere riportate per Palermo |
 | Istruzione | `P86`–`P90` | Titolo più alto, residenti di 9 anni e più |
+| Istruzione per sesso | `P91`–`P100` | Stesso titolo di studio, diviso maschi/femmine |
 | Occupazione | `P101`–`P103` | Occupati di 15–64 anni, totali e per sesso |
+| Stranieri: età, cittadinanza e occupazione | `ST17` `ST18` `ST20` `ST21` `ST22`–`ST24` `ST31`–`ST33` | UE/extra-UE per sesso, fasce 0–14/15–64/65+, occupati per sesso |
 | Famiglie | `PF3`–`PF8` | Famiglie da 1 a 6+ componenti |
 | Abitazioni | `A2` `A3` `A8` | Occupate da residenti, vuote o occupate da non residenti, totali |
 
@@ -211,6 +221,21 @@ senza classe ricevono residenti.
 sono ricavati per differenza (`P1 − ST1`). L'unità evidenziata è quella in cui cade il centro della zona A,
 individuata interrogando il confine UPL visualizzato in quel punto.
 
+### Tendenza 2021→2023
+
+Il dato principale resta il censimento **2021** a livello di sezione, ma per circoscrizioni, quartieri e UPL è
+disponibile anche un aggiornamento **2023** (popolazione totale) dal Cruscotto Statistico Comunale
+(dati.gov.it), caricato in background e allineato per codice comune (`js/config.js`
+`INDICATORI_2023_JSON_URL`).
+
+- Se il dato 2023 è arrivato, la **classifica territoriale** mostra un badge di tendenza (▲/▼/≈, percentuale)
+  accanto a ogni riga e al totale città (`trendBadgeHTML`, `js/punto.js`).
+- Ogni scheda grafico ha un terzo pulsante **"Confronta 2021 e 2023"**: apre una modale con i due anni
+  affiancati per lo stesso argomento e la stessa zona, più una tabella con lo scarto categoria per categoria
+  (`js/compare.js`).
+- Il confronto è disponibile solo per gli argomenti e i livelli territoriali coperti dal Cruscotto 2023; se manca
+  il dato per la selezione corrente, badge e pulsante restano disattivati.
+
 ### Analisi DTM
 
 Il pannello di destra descrive il terreno con l'**HR-DTM-5m** dell'IRPI-CNR (LiDAR 1–2 m integrato con TINITALY
@@ -238,7 +263,8 @@ in italiano):
 
 ### Limiti
 
-- I dati descrivono la popolazione residente al **2021**.
+- I dati di sezione (grafici, DTM, edifici) descrivono la popolazione residente al **2021**; la tendenza
+  2023 è solo un totale aggregato per circoscrizione/quartiere/UPL, non ripartito per sezione o argomento.
 - I totali per edifici sono **stime**: dipendono dal modello dasimetrico (peso impronta × piani, uso sconosciuto
   per l'85% degli edifici) e ripartiscono i campi ISTAT in proporzione ai residenti, quindi sono in genere numeri
   non interi arrotondati.

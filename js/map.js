@@ -248,6 +248,23 @@ export class MapModule {
             source: sourceId,
             paint: { 'line-color': ZONE_COLORS.border, 'line-width': 2 }
           });
+          // Etichetta A/B al centro del poligono, stesso stile del badge del cerchio/
+          // poligono disegnato a mano (probe-handle--a/b in style.css).
+          this.map.addLayer({
+            id: `${sourceId}-label`,
+            type: 'symbol',
+            source: sourceId,
+            layout: {
+              'text-field': key,
+              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+              'text-size': 16
+            },
+            paint: {
+              'text-color': zoneFill(key),
+              'text-halo-color': ZONE_COLORS.halo,
+              'text-halo-width': 1.5
+            }
+          });
         }
 
   }

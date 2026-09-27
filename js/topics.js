@@ -25,8 +25,12 @@ const AGE_BANDS_STRANIERI = [
   { bandLabel: '65+',   male: 'ST27', female: 'ST30' }
 ];
 
+// Ordine di visualizzazione dei gruppi nel pannello Argomenti (accordion).
+export const TOPIC_GROUPS = ['Popolazione', 'Stranieri', 'Istruzione & lavoro'];
+
 export const TOPICS = {
   popolazione_sesso: {
+    group: 'Popolazione',
     label: 'Popolazione totale & sesso',
     description: 'Popolazione residente totale, maschi e femmine (ISTAT P1, P2, P3).',
     chartType: 'doughnut',
@@ -40,6 +44,7 @@ export const TOPICS = {
     ]
   },
   stranieri: {
+    group: 'Stranieri',
     label: 'Stranieri',
     description: 'Stranieri e apolidi residenti: totale, cittadini UE ed extra-UE, e tre fasce d\'età (0–29, 30–54, 55 anni e più).',
     chartType: 'bar',
@@ -52,7 +57,26 @@ export const TOPICS = {
       { field: 'ST5', label: 'Età 55+' }
     ]
   },
+  stranieri_dettaglio: {
+    group: 'Stranieri',
+    label: 'Stranieri: età, cittadinanza e occupazione',
+    description: 'Stranieri e apolidi residenti per cittadinanza UE/extra-UE e sesso, tre fasce d\'età anagrafiche (0–14, 15–64, 65+) e occupati di 15–64 anni, totali e per sesso (ISTAT ST17–ST33).',
+    chartType: 'bar',
+    series: [
+      { field: 'ST17', label: 'UE (M)' },
+      { field: 'ST18', label: 'UE (F)' },
+      { field: 'ST20', label: 'Extra-UE (M)' },
+      { field: 'ST21', label: 'Extra-UE (F)' },
+      { field: 'ST22', label: 'Età 0-14' },
+      { field: 'ST23', label: 'Età 15-64' },
+      { field: 'ST24', label: 'Età 65+' },
+      { field: 'ST31', label: 'Occupati totali' },
+      { field: 'ST32', label: 'Occupati (M)' },
+      { field: 'ST33', label: 'Occupate (F)' }
+    ]
+  },
   piramide_eta: {
+    group: 'Popolazione',
     label: 'Piramide età-sesso',
     description: 'Popolazione residente per sesso e fasce d\'età di 5 anni, da meno di 5 a oltre 74 anni. Con il filtro stranieri: 3 fasce (0–14, 15–64, 65+).',
     chartType: 'pyramid',
@@ -60,6 +84,7 @@ export const TOPICS = {
     stranieriAgeBands: AGE_BANDS_STRANIERI
   },
   istruzione: {
+    group: 'Istruzione & lavoro',
     label: 'Istruzione',
     description: 'Residenti di 9 anni e più per titolo di studio più alto: nessuno, licenza elementare, media, diploma (incluse le qualifiche professionali), titoli terziari.',
     chartType: 'bar',
@@ -71,7 +96,26 @@ export const TOPICS = {
       { field: 'P90', label: 'Laurea o più' }
     ]
   },
+  istruzione_sesso: {
+    group: 'Istruzione & lavoro',
+    label: 'Istruzione per sesso',
+    description: 'Stesso titolo di studio del topic "Istruzione" (residenti di 9 anni e più), diviso per maschi e femmine (ISTAT P91–P100).',
+    chartType: 'bar',
+    series: [
+      { field: 'P91', label: 'Nessun titolo (M)' },
+      { field: 'P96', label: 'Nessun titolo (F)' },
+      { field: 'P92', label: 'Elementare (M)' },
+      { field: 'P97', label: 'Elementare (F)' },
+      { field: 'P93', label: 'Media (M)' },
+      { field: 'P98', label: 'Media (F)' },
+      { field: 'P94', label: 'Diploma (M)' },
+      { field: 'P99', label: 'Diploma (F)' },
+      { field: 'P95', label: 'Laurea o più (M)' },
+      { field: 'P100', label: 'Laurea o più (F)' }
+    ]
+  },
   occupazione: {
+    group: 'Istruzione & lavoro',
     label: 'Occupazione',
     description: 'Residenti occupati di 15–64 anni, totali e per sesso.',
     chartType: 'bar',
@@ -82,6 +126,7 @@ export const TOPICS = {
     ]
   },
   nazionalita: {
+    group: 'Stranieri',
     label: 'Nazionalità principali',
     description: 'Stranieri residenti per le 10 cittadinanze riportate nel dataset ISTAT per Palermo.',
     chartType: 'bar',
@@ -99,6 +144,7 @@ export const TOPICS = {
     ]
   },
   famiglie: {
+    group: 'Popolazione',
     label: 'Famiglie per n. componenti',
     description: 'Famiglie residenti per numero di componenti, da 1 a 6 e oltre.',
     chartType: 'bar',
@@ -112,6 +158,7 @@ export const TOPICS = {
     ]
   },
   abitazioni: {
+    group: 'Popolazione',
     label: 'Abitazioni',
     description: 'Abitazioni occupate da almeno un residente; vuote o occupate solo da non residenti; totali.',
     chartType: 'bar',
@@ -184,4 +231,19 @@ export function aggregateTopic(records, selection, topicKey, idField = 'SEZ21_ID
     totalPopulation,
     filtered: useStranieri && !!topic.stranieriSeries
   };
+}
+
+// Confronto rapido tra due aggregazioni dello stesso topic (stessa zona, anni diversi):
+// somma tutti i valori di tutti i dataset per un unico totale per anno, poi variazione %.
+// Nessun anno con dati (0 sezioni con SEZ21_ID presente in quell'anno) -> null (n.d.).
+export function computeTrend(aggregationPrev, aggregationCurr) {
+  const sumAll = agg => agg.datasets.reduce((s, ds) => s + ds.data.reduce((a, b) => a + Math.abs(b), 0), 0);
+  const prevTotal = sumAll(aggregationPrev);
+  const currTotal = sumAll(aggregationCurr);
+  if (prevTotal === 0) {
+    return { prevTotal, currTotal, pct: null, direction: currTotal === 0 ? 'flat' : 'up' };
+  }
+  const pct = ((currTotal - prevTotal) / prevTotal) * 100;
+  const direction = Math.abs(pct) < 0.5 ? 'flat' : pct > 0 ? 'up' : 'down';
+  return { prevTotal, currTotal, pct, direction };
 }

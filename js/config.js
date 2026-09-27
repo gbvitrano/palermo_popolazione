@@ -13,6 +13,9 @@ export const EDIFICI_ZONA_JSON_URL = 'data/edifici_zona.json';
 // delle linee): vedi scripts/build_confini_zone.py.
 export const CONFINI_ZONE_JSON_URL = 'data/confini_zone.json';
 export const INDICATORI_JSON_URL = 'data/sezioni_indicatori.json';
+// Aggiornamento 2023 (stesse sezioni SEZ21_ID): usato solo per il confronto di
+// tendenza nei grafici, caricato in background dopo l'avvio (vedi scripts/build_indicatori_2023.py).
+export const INDICATORI_2023_JSON_URL = 'data/sezioni_indicatori_2023.json';
 export const ELEVAZIONE_TILES_URL = 'data/elevazione/{z}/{x}/{y}.png';
 export const TERRAIN_DEM_TILES_URL = 'data/terrain/{z}/{x}/{y}.png';
 export const GRIGLIA_TILES_URL = 'data/griglia_pbf/{z}/{x}/{y}.pbf';

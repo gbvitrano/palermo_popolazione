@@ -1,10 +1,11 @@
-import { INDICATORI_JSON_URL, EDIFICI_ZONA_JSON_URL, CONFINI_ZONE_JSON_URL } from './config.js';
+import { INDICATORI_JSON_URL, INDICATORI_2023_JSON_URL, EDIFICI_ZONA_JSON_URL, CONFINI_ZONE_JSON_URL } from './config.js';
 import { MapModule } from './map.js';
 import { ProbeController } from './probe.js';
 import { PolygonController } from './polygon.js';
 import { buildCentroidIndex, filterWithinZone, zoneBBox, zoneCenter, ringAreaSqMeters } from './geometry.js';
-import { TOPICS, aggregateTopic } from './topics.js';
+import { TOPICS, TOPIC_GROUPS, aggregateTopic, computeTrend } from './topics.js';
 import { ChartController, applyChartTheme, exportChartPng } from './charts.js';
+import { openCompareModal } from './compare.js';
 import { densityStops, densityLegendStops, confiniStyle, sezioniColors, ELEVATION_STOPS, EDIFICATO_NEUTRAL, puntiColors, CONFINI_LABEL_SINGULAR } from './palette.js';
 import { setupAriaSync, setupTablist } from './a11y.js';
 import { setupSheet, resetSnap, sheetInset } from './sheet.js';
@@ -63,6 +64,9 @@ let edificiIndex = null;
 let p1ById = new Map();
 let centroidIndex = [];
 let sectionsRecords = [];
+// Aggiornamento 2023: caricato in background dopo l'avvio, resta [] finché non arriva
+// (i badge di tendenza e il pulsante "Confronta 2021↔2023" restano disattivati fino ad allora).
+let sectionsRecords2023 = [];
 let densityMode = 'none';
 let confiniActiveLevels = new Set();
 let activeMapModule = null;
@@ -83,9 +87,15 @@ let polygonMode = false; // true: la zona A è un poligono disegnato, il click s
 // resto (non blocca hideLoader), come EDIFICI_ZONA_JSON_URL.
 let confiniZoneIndex = null;
 let confiniZoneIndexPromise = null;
+let territorioBEntries = []; // elenco corrente delle opzioni popolate nel select B: gli indici
+// nel value del select si riferiscono a QUESTO array (che può essere filtrato per escludere A),
+// non a index[level] grezzo — altrimenti l'esclusione di A sfasa gli indici delle voci successive.
 
 const HINT_CIRCLE = "Clicca sulla mappa per attivare l'area di analisi";
 const HINT_POLYGON = 'Clicca per aggiungere i vertici · doppio click o click sul primo vertice per chiudere · Esc per annullare';
+// Area senza sezioni/edifici (es. click fuori dal confine amministrativo di Palermo, in mare
+// o in una zona senza edificato): nessun dato da mostrare, si invita a scegliere un altro punto.
+const HINT_INVALID_AREA = "Nessun dato in quest'area: seleziona un punto dentro il confine amministrativo di Palermo, su una zona edificata";
 
 const circleZone = (center, radiusMeters) => (center ? { type: 'circle', center, radiusMeters } : null);
 const polygonZone = ring => (ring ? { type: 'polygon', ring } : null);
@@ -131,6 +141,10 @@ function renderKpi(kpiEl, zoneKey, label, value) {
 
 function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeEl, kpiLabel, zoneKey }) {
   const controllers = new Map(); // topicKey -> { controller, wrapperEl }
+  // Ultima selezione renderizzata: serve al pulsante "Confronta 2021↔2023" (click
+  // asincrono rispetto al render), tenuta qui perché ogni pannello ha la sua zona.
+  let lastRenderSectionIds = new Set();
+  let lastFilterStranieri = false;
 
   function ensureSlots() {
     const hintEl = chartListEl.querySelector('.chart-empty-hint');
@@ -151,6 +165,7 @@ function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeE
       itemEl.innerHTML = `
         <div class="chart-item-head">
           <div class="chart-item-title">${TOPICS[key].label}</div>
+          <span class="chart-trend hidden"></span>
           <div class="chart-item-actions">
             <button type="button" class="card-action" data-act="info" aria-expanded="false" aria-controls="${infoId}"
                     title="Cosa misura questo indicatore" aria-label="Informazioni: ${TOPICS[key].label}">
@@ -160,6 +175,10 @@ function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeE
                     title="Scarica il grafico in PNG" aria-label="Scarica in PNG: ${TOPICS[key].label}">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>
             </button>` : ''}
+            <button type="button" class="card-action" data-act="trend" disabled
+                    title="Confronta 2021 e 2023" aria-label="Confronta 2021 e 2023: ${TOPICS[key].label}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V9M12 19V5M20 19v-7"/></svg>
+            </button>
           </div>
         </div>
         <p class="chart-item-info" id="${infoId}" hidden>${TOPICS[key].description || ''}</p>
@@ -180,6 +199,15 @@ function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeE
         } else if (btn.dataset.act === 'png') {
           const title = `${itemEl.querySelector('.chart-item-title').textContent} — Zona ${zoneKey}`;
           exportChartPng(itemEl, title, `palermo_${key}_zona-${zoneKey.toLowerCase()}.png`);
+        } else if (btn.dataset.act === 'trend') {
+          openCompareModal({
+            topicKey: key,
+            sectionIds: lastRenderSectionIds,
+            filterStranieri: lastFilterStranieri,
+            recordsPrev: sectionsRecords,
+            recordsCurr: sectionsRecords2023,
+            zoneLabel: zoneKey
+          });
         }
       });
       chartListEl.appendChild(itemEl);
@@ -198,9 +226,12 @@ function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeE
       renderKpi(kpiEl, zoneKey, kpiLabel, 0);
       missingBadgeEl.textContent = '0 sezioni nella zona';
       missingBadgeEl.classList.remove('hidden');
+      lastRenderSectionIds = sectionIds;
       const empty = { labels: [], datasets: [{ label: '', data: [] }], missingCount: 0, totalPopulation: 0 };
       for (const [key, entry] of controllers) {
         entry.controller.render(key, empty, TOPICS);
+        entry.wrapperEl.querySelector('[data-act="trend"]').disabled = true;
+        entry.wrapperEl.querySelector('.chart-trend').classList.add('hidden');
       }
       return;
     }
@@ -216,6 +247,9 @@ function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeE
     }
 
     const filterStranieri = activeTopics.has('stranieri') && activeTopics.size > 1;
+    lastRenderSectionIds = sectionIds;
+    lastFilterStranieri = filterStranieri;
+    const has2023 = sectionsRecords2023.length > 0;
 
     let totalPopulation = 0;
     let missingCount = 0;
@@ -254,6 +288,27 @@ function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeE
       titleEl.textContent = aggregations.get(key).filtered
         ? `${TOPICS[key].label} (solo stranieri)`
         : TOPICS[key].label;
+
+      const trendBtn = entry.wrapperEl.querySelector('[data-act="trend"]');
+      const trendBadgeEl = entry.wrapperEl.querySelector('.chart-trend');
+      trendBtn.disabled = !has2023;
+      if (has2023) {
+        const aggregation2023 = aggregateTopic(sectionsRecords2023, sectionIds, key, 'SEZ21_ID', filterStranieri);
+        const trend = computeTrend(aggregations.get(key), aggregation2023);
+        trendBadgeEl.classList.remove('hidden', 'up', 'down', 'flat');
+        if (trend.pct == null) {
+          trendBadgeEl.textContent = 'n.d.';
+          trendBadgeEl.title = 'Nessun dato 2023 per questa selezione';
+        } else {
+          const arrow = trend.direction === 'up' ? '▲' : trend.direction === 'down' ? '▼' : '≈';
+          const pctText = `${trend.pct > 0 ? '+' : ''}${trend.pct.toLocaleString('it-IT', { maximumFractionDigits: 1 })}%`;
+          trendBadgeEl.textContent = `${arrow} ${pctText}`;
+          trendBadgeEl.title = `2021: ${trend.prevTotal.toLocaleString('it-IT')} → 2023: ${trend.currTotal.toLocaleString('it-IT')}`;
+          trendBadgeEl.classList.add(trend.direction);
+        }
+      } else {
+        trendBadgeEl.classList.add('hidden');
+      }
     }
 
     if (chartTitleEl) {
@@ -407,24 +462,59 @@ function syncSezioniButton(mapModule) {
   btn.classList.toggle('active', mapModule.sezioniVisible);
 }
 
+// Argomenti raggruppati in accordion (<details>): con la lista che continua a
+// crescere, i pill in un unico blocco flex-wrap occupavano troppo spazio
+// verticale nel pannello. Ogni gruppo si apre di default solo se contiene un
+// argomento già attivo, così la selezione corrente resta sempre visibile.
 function renderTopicButtons() {
   topicButtonsEl.innerHTML = '';
+  const byGroup = new Map(TOPIC_GROUPS.map((g) => [g, []]));
   for (const [key, topic] of Object.entries(TOPICS)) {
-    const btn = document.createElement('button');
-    btn.textContent = topic.label;
-    btn.title = topic.label;
-    btn.dataset.topicKey = key;
-    if (activeTopics.has(key)) btn.classList.add('active');
-    btn.addEventListener('click', () => {
-      if (activeTopics.has(key)) {
-        activeTopics.delete(key);
-      } else {
-        activeTopics.add(key);
-      }
-      btn.classList.toggle('active');
-      renderChart();
-    });
-    topicButtonsEl.appendChild(btn);
+    if (!byGroup.has(topic.group)) byGroup.set(topic.group, []);
+    byGroup.get(topic.group).push([key, topic]);
+  }
+
+  for (const [group, entries] of byGroup) {
+    if (entries.length === 0) continue;
+    const details = document.createElement('details');
+    details.className = 'topic-group';
+    details.open = entries.some(([key]) => activeTopics.has(key));
+
+    const summary = document.createElement('summary');
+    summary.textContent = group;
+    const count = document.createElement('span');
+    count.className = 'topic-group-count';
+    details.appendChild(summary);
+    summary.appendChild(count);
+
+    const list = document.createElement('div');
+    list.className = 'topic-group-list';
+    const refreshCount = () => {
+      const n = entries.filter(([key]) => activeTopics.has(key)).length;
+      count.textContent = n > 0 ? String(n) : '';
+    };
+
+    for (const [key, topic] of entries) {
+      const btn = document.createElement('button');
+      btn.textContent = topic.label;
+      btn.title = topic.label;
+      btn.dataset.topicKey = key;
+      if (activeTopics.has(key)) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        if (activeTopics.has(key)) {
+          activeTopics.delete(key);
+        } else {
+          activeTopics.add(key);
+        }
+        btn.classList.toggle('active');
+        refreshCount();
+        renderChart();
+      });
+      list.appendChild(btn);
+    }
+    refreshCount();
+    details.appendChild(list);
+    topicButtonsEl.appendChild(details);
   }
 }
 
@@ -490,11 +580,14 @@ function onBreakpointChange() {
 
 let puntoRequestId = 0;
 let rankStats = null; // popolazione per circoscrizione/quartiere/UPL, calcolata una volta in bootstrap()
+let rankStats2023 = null; // idem su sectionsRecords2023, arriva in background dopo l'avvio
+let lastPuntoCenter = null; // per ridisegnare il pannello punto quando arrivano i dati 2023
 
 // autoOpen = false: aggiorna i contenuti senza forzare l'apertura del pannello
 // (in layout compatto non si riapre a ogni trascinamento della zona).
 function updatePuntoPanel(center, autoOpen = true) {
   if (!activeMapModule) return;
+  lastPuntoCenter = center;
   if (!center) {
     puntoRequestId++;
     hidePanel(puntoPanelEl);
@@ -522,7 +615,7 @@ function updatePuntoPanel(center, autoOpen = true) {
     clearTimeout(skeletonTimer);
     if (requestId !== puntoRequestId) return; // spot spostato/eliminato nel frattempo
     renderPuntoPanel(puntoBodyEl, props, puntoQuotaBoxEl, puntoQuotaValEl);
-    renderCircRanking(puntoBodyEl, rankStats, luogo);
+    renderCircRanking(puntoBodyEl, rankStats, luogo, rankStats2023);
   });
 }
 
@@ -551,8 +644,8 @@ function populateTerritorioOptions(selectEl, entries, placeholder) {
 }
 
 // Ricarica le opzioni di zona A (e di zona B se il suo picker è visibile) per il
-// livello scelto in territorio-livello. Non blocca: mostra "Caricamento…" nel
-// frattempo, così i due select restano usabili appena i dati arrivano.
+// livello condiviso scelto in territorio-livello/-b. Non blocca: mostra "Caricamento…"
+// nel frattempo, così i due select restano usabili appena i dati arrivano.
 async function refreshTerritorioOptions() {
   const level = territorioLivelloEl.value;
   const bVisible = !territorioBRowEl.classList.contains('hidden');
@@ -569,7 +662,8 @@ async function refreshTerritorioOptions() {
     populateTerritorioOptions(territorioNomeEl, index[level], 'Zona A: scegli…');
     territorioNomeEl.disabled = false;
     if (bVisible) {
-      populateTerritorioOptions(territorioNomeBEl, index[level], 'Zona B: scegli…');
+      territorioBEntries = index[level];
+      populateTerritorioOptions(territorioNomeBEl, territorioBEntries, 'Zona B: scegli…');
       territorioNomeBEl.disabled = false;
     }
   } catch (err) {
@@ -589,6 +683,15 @@ function selectZone(zone) {
 function onZoneAChange(zone) {
   // in layout compatto i pannelli si aprono da soli solo alla creazione della zona
   const autoOpen = !compactMQ.matches || !zoneA;
+
+  // Zona da confine (select territorio) è per definizione valida: contiene sempre sezioni.
+  // Cerchio/poligono a mano invece possono cadere (anche solo temporaneamente, durante un
+  // trascinamento) fuori dal confine amministrativo o su un'area senza edificato: in quel
+  // caso non c'è nulla da mostrare, ma la zona NON va cancellata — l'utente deve poter
+  // continuare a spostare liberamente il cerchio/poligono finché non trova un punto valido.
+  const weights = zone ? selectZone(zone) : null;
+  const isEmptyArea = !!zone && zone.type !== 'boundary' && weights.size === 0;
+
   zoneA = zone;
   const center = zone ? zoneCenter(zone) : null;
   if (activeMapModule) {
@@ -606,27 +709,44 @@ function onZoneAChange(zone) {
   const isBoundary = zone?.type === 'boundary';
   probeA.clickToCreate = !isBoundary && !polygonMode;
   btnPolygonEl.disabled = isBoundary;
-  spotActive = !!zone;
+  spotActive = !!zone && !isEmptyArea;
   renderLegend();
-  btnCompareEl.disabled = !zone;
-  btnExportCsvEl.disabled = !zone;
-  btnExportSezioniCsvEl.disabled = !zone;
+  btnCompareEl.disabled = !zone || isEmptyArea;
+  btnExportCsvEl.disabled = !zone || isEmptyArea;
+  btnExportSezioniCsvEl.disabled = !zone || isEmptyArea;
   if (!zone && compareActive) setCompareActive(false);
   if (!compareActive) updatePuntoPanel(center, autoOpen);
   if (!zone) {
     lastSectionIds = new Map();
     hidePanel(chartPanelEl);
+    probeHintEl.classList.remove('hint-banner--warning');
     if (!polygonA?.isDrawing) probeHintEl.classList.remove('hidden');
     return;
   }
+  if (isEmptyArea) {
+    // Cerchio/poligono ancora attivo (l'utente lo sta ancora trascinando o l'ha lasciato
+    // qui): niente pannello dati, solo l'invito a spostarsi su un'area valida.
+    lastSectionIds = new Map();
+    hidePanel(chartPanelEl);
+    probeHintEl.textContent = HINT_INVALID_AREA;
+    probeHintEl.classList.add('hint-banner--warning');
+    probeHintEl.classList.remove('hidden');
+    return;
+  }
   probeHintEl.classList.add('hidden');
+  probeHintEl.classList.remove('hint-banner--warning');
   if (autoOpen) showPanel(chartPanelEl);
-  lastSectionIds = selectZone(zone);
+  lastSectionIds = weights;
   chartPanelA.render(lastSectionIds);
   if (compareActive && zoneB) chartPanelB.render(lastSectionIdsB);
 }
 
 function onZoneBChange(zone) {
+  // Stessa logica non distruttiva della zona A: se il cerchio/poligono B è temporaneamente
+  // fuori dal confine amministrativo resta al suo posto, mostriamo solo l'avviso.
+  const weights = zone ? selectZone(zone) : null;
+  const isEmptyArea = !!zone && zone.type !== 'boundary' && weights.size === 0;
+
   zoneB = zone;
   if (activeMapModule) {
     activeMapModule.updateEdificatoSpot('B', zone);
@@ -639,8 +759,14 @@ function onZoneBChange(zone) {
     return;
   }
   const center = zoneCenter(zone);
+  if (isEmptyArea) {
+    lastSectionIdsB = new Map();
+    compareCoordsEl.textContent = `${center[1].toFixed(4)}° N  ${center[0].toFixed(4)}° E — nessun dato in quest'area`;
+    chartPanelB.render(new Map());
+    return;
+  }
   compareCoordsEl.textContent = `${center[1].toFixed(4)}° N  ${center[0].toFixed(4)}° E`;
-  lastSectionIdsB = selectZone(zone);
+  lastSectionIdsB = weights;
   chartPanelB.render(lastSectionIdsB);
 }
 
@@ -655,6 +781,7 @@ function setPolygonMode(active) {
   polygonA.clear();
   onZoneAChange(null);
   probeHintEl.textContent = active ? HINT_POLYGON : HINT_CIRCLE;
+  probeHintEl.classList.remove('hint-banner--warning');
   // al centro solo per il cerchio: durante il disegno del poligono coprirebbe i vertici
   probeHintEl.classList.toggle('hint-banner--center', !active);
   probeHintEl.classList.remove('hidden');
@@ -676,14 +803,14 @@ function setCompareActive(active) {
 
     if (zoneA.type === 'boundary') {
       // Nessuna copia auto-traslata come per cerchio/poligono: la zona B "da confine"
-      // è per definizione un altro poligono dello stesso layer, quindi tocca
-      // all'utente scegliere quale (stesso livello di A, popolato di sotto).
+      // è per definizione un altro poligono dello stesso livello di A (livello unico
+      // condiviso), quindi tocca all'utente scegliere quale, popolato di sotto.
       territorioBRowEl.classList.remove('hidden');
       ensureConfiniZoneIndex().then(index => {
         // Esclude la A corrente dall'elenco: confrontare un territorio con se stesso
         // non ha senso e darebbe un delta 0/0 sballato.
-        const options = index[zoneA.level].filter(entry => entry.name !== zoneA.name);
-        populateTerritorioOptions(territorioNomeBEl, options, 'Zona B: scegli…');
+        territorioBEntries = index[zoneA.level].filter(entry => entry.name !== zoneA.name);
+        populateTerritorioOptions(territorioNomeBEl, territorioBEntries, 'Zona B: scegli…');
       });
     } else if (zoneA.type === 'polygon') {
       if (!polygonB) {
@@ -840,6 +967,16 @@ async function bootstrap() {
     if (zoneB) lastSectionIdsB = selectZone(zoneB);
     if (zoneA) renderChart();
   }, err => console.warn('Totali per edifici non disponibili, uso i centroidi:', err));
+  // non blocca l'avvio: badge di tendenza e confronto 2021↔2023 restano disattivati finché non arriva
+  fetch(INDICATORI_2023_JSON_URL).then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }).then(records => {
+    sectionsRecords2023 = records;
+    rankStats2023 = aggregateAllLevels(sectionsRecords2023);
+    if (zoneA) renderChart();
+    if (lastPuntoCenter) updatePuntoPanel(lastPuntoCenter, false);
+  }, err => console.warn('Dati 2023 non disponibili, confronto di tendenza disattivato:', err));
 
   activeMapModule = mapModule;
   probeA = new ProbeController(mapModule.getMap(), (c, r) => onZoneAChange(circleZone(c, r)), { label: 'A' });
@@ -892,16 +1029,15 @@ async function bootstrap() {
     // rigenera l'elenco escludendo la A appena scelta.
     if (compareActive && !territorioBRowEl.classList.contains('hidden')) {
       onZoneBChange(null);
-      const options = index[level].filter(e => e.name !== entry.name);
-      populateTerritorioOptions(territorioNomeBEl, options, 'Zona B: scegli…');
+      territorioBEntries = index[level].filter(e => e.name !== entry.name);
+      populateTerritorioOptions(territorioNomeBEl, territorioBEntries, 'Zona B: scegli…');
     }
   });
 
   territorioNomeBEl.addEventListener('change', async () => {
     if (territorioNomeBEl.value === '') { onZoneBChange(null); return; }
     const level = territorioLivelloEl.value;
-    const index = await ensureConfiniZoneIndex();
-    const zone = boundaryZone(level, index[level][Number(territorioNomeBEl.value)]);
+    const zone = boundaryZone(level, territorioBEntries[Number(territorioNomeBEl.value)]);
     onZoneBChange(zone);
     // Inquadra entrambi i territori (non solo B): il confronto richiede vederli insieme.
     if (activeMapModule && zoneA) {

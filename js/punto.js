@@ -193,12 +193,27 @@ export function aggregateAllLevels(records) {
   );
 }
 
+// Badge di tendenza 2021→2023 (stesso stile di .chart-trend nel pannello grafici):
+// null se manca il dato 2023 per questa unità, altrimenti ▲/▼/≈ con percentuale.
+export function trendBadgeHTML(prevTotal, currTotal) {
+  if (currTotal == null) return '';
+  if (prevTotal === 0) return '';
+  const pct = ((currTotal - prevTotal) / prevTotal) * 100;
+  const direction = Math.abs(pct) < 0.5 ? 'flat' : pct > 0 ? 'up' : 'down';
+  const arrow = direction === 'up' ? '▲' : direction === 'down' ? '▼' : '≈';
+  const pctText = `${pct > 0 ? '+' : ''}${pct.toLocaleString('it-IT', { maximumFractionDigits: 1 })}%`;
+  return `<span class="chart-trend circ-trend ${direction}" title="2021: ${Math.round(prevTotal).toLocaleString('it-IT')} → 2023: ${Math.round(currTotal).toLocaleString('it-IT')}">${arrow} ${pctText}</span>`;
+}
+
 /**
  * Classifica popolazione con barre impilate italiani/stranieri, accodata al
  * pannello. Pulsanti Circoscrizione/Quartieri/UPL cambiano livello; luogo
  * ({ Circoscrizione, Quartiere, UPL }) evidenzia l'unità in cui cade il punto.
+ * statsByLevel2023 (opzionale): stessa struttura di statsByLevel calcolata sul
+ * 2023 (js/config.js INDICATORI_2023_JSON_URL), caricata in background — se
+ * assente i badge di tendenza restano nascosti.
  */
-export function renderCircRanking(bodyEl, statsByLevel, luogo) {
+export function renderCircRanking(bodyEl, statsByLevel, luogo, statsByLevel2023) {
   if (!statsByLevel || !statsByLevel.circoscrizioni?.length) return;
   const fmt = v => Math.round(v).toLocaleString('it-IT');
 
@@ -229,7 +244,9 @@ export function renderCircRanking(bodyEl, statsByLevel, luogo) {
   s.appendChild(tot);
 
   const src = el('div', 'circ-source');
-  src.textContent = 'Fonte: ISTAT, Censimento permanente 2021 — sezioni di censimento.';
+  src.textContent = statsByLevel2023
+    ? 'Fonte: ISTAT, Censimento permanente 2021 — sezioni di censimento. Tendenza: aggiornamento 2023, Cruscotto Statistico Comunale (dati.gov.it).'
+    : 'Fonte: ISTAT, Censimento permanente 2021 — sezioni di censimento.';
   s.appendChild(src);
 
   const buttons = {};
@@ -240,6 +257,12 @@ export function renderCircRanking(bodyEl, statsByLevel, luogo) {
     const maxTot = stats[0]?.totale || 1;
     const cittaTot = stats.reduce((acc, a) => acc + a.totale, 0);
     const cittaStr = stats.reduce((acc, a) => acc + a.stranieri, 0);
+
+    // lookup per nome unità: statsByLevel2023 può mancare (dato 2023 non ancora arrivato)
+    const stats2023ByName = new Map((statsByLevel2023?.[currentRankLevel] || []).map(a => [a.circ, a]));
+    const cittaTot2023 = statsByLevel2023?.[currentRankLevel]
+      ? statsByLevel2023[currentRankLevel].reduce((acc, a) => acc + a.totale, 0)
+      : null;
 
     title.textContent = `Popolazione residente per ${cfg.title}`;
     for (const [lvl, b] of Object.entries(buttons)) b.classList.toggle('active', lvl === currentRankLevel);
@@ -259,16 +282,18 @@ export function renderCircRanking(bodyEl, statsByLevel, luogo) {
           <span class="circ-fill circ-st" style="width:${(a.stranieri / maxTot) * 100}%"></span>
         </span>
         <span class="rank-value">${fmt(a.totale)}</span>
-        <span class="circ-pct">${pctSt.toFixed(1)}%</span>`;
+        <span class="circ-pct">${pctSt.toFixed(1)}%</span>
+        ${trendBadgeHTML(a.totale, stats2023ByName.get(a.circ)?.totale)}`;
       r.querySelector('.circ-label').textContent = cfg.prefix + a.circ; // nomi da dati: niente innerHTML
       list.appendChild(r);
     });
 
     tot.innerHTML = '';
     tot.appendChild(Object.assign(el('span', 'punto-row-label'), { textContent: 'Palermo — totale' }));
-    tot.appendChild(Object.assign(el('span', 'punto-row-value'), {
-      textContent: `${fmt(cittaTot)} · str. ${fmt(cittaStr)} (${cittaTot ? ((cittaStr / cittaTot) * 100).toFixed(1) : '0.0'}%)`
-    }));
+    const totValue = el('span', 'punto-row-value');
+    totValue.innerHTML = `${fmt(cittaTot)} · str. ${fmt(cittaStr)} (${cittaTot ? ((cittaStr / cittaTot) * 100).toFixed(1) : '0.0'}%)` +
+      trendBadgeHTML(cittaTot, cittaTot2023);
+    tot.appendChild(totValue);
 
     // voce di legenda solo se una riga è davvero evidenziata (spot fuori dai confini → nessuna)
     legend.querySelector('.circ-legend-spot').classList.toggle('hidden', !list.querySelector('.circ-current'));
