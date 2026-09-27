@@ -40,12 +40,16 @@ const DENSITY_RAMPS = {
   light: {
     popolazione: [[0, '#8fa3c9'], [50, '#e0a93b'], [150, '#d9602b'], [400, '#a4243b']],
     edifici: [[0, '#8fa3c9'], [25, '#e0a93b'], [50, '#d9602b'], [75, '#a4243b'], [100, '#6e1530']],
-    dasimetrica: [[0, '#8fa3c9'], [100, '#e0a93b'], [250, '#d9602b'], [500, '#a4243b'], [1000, '#6e1530']]
+    dasimetrica: [[0, '#8fa3c9'], [100, '#e0a93b'], [250, '#d9602b'], [500, '#a4243b'], [1000, '#6e1530']],
+    // verde (sezione giovane) → rosso scuro (sezione molto anziana): scala diversa dalle
+    // altre densità (blu→rosso) per non confondere semanticamente "vecchiaia" con "densità".
+    vecchiaia: [[0, '#4caf7d'], [100, '#e0a93b'], [150, '#d9602b'], [250, '#a4243b'], [400, '#6e1530']]
   },
   dark: {
     popolazione: [[0, '#5a6f9e'], [50, '#e9c46a'], [150, '#f08a3e'], [400, '#ef4f5a']],
     edifici: [[0, '#5a6f9e'], [25, '#e9c46a'], [50, '#f08a3e'], [75, '#ef4f5a'], [100, '#d62f5b']],
-    dasimetrica: [[0, '#5a6f9e'], [100, '#e9c46a'], [250, '#f08a3e'], [500, '#ef4f5a'], [1000, '#d62f5b']]
+    dasimetrica: [[0, '#5a6f9e'], [100, '#e9c46a'], [250, '#f08a3e'], [500, '#ef4f5a'], [1000, '#d62f5b']],
+    vecchiaia: [[0, '#4fd18a'], [100, '#e9c46a'], [150, '#f08a3e'], [250, '#ef4f5a'], [400, '#d62f5b']]
   }
 };
 
@@ -55,7 +59,8 @@ export const EDIFICATO_NEUTRAL = '#8a94a8';
 const DENSITY_LABELS = {
   popolazione: ['0', '50', '150', '400+'],
   edifici: ['0%', '25%', '50%', '75%', '100%'],
-  dasimetrica: ['0', '100', '250', '500', '1000+']
+  dasimetrica: ['0', '100', '250', '500', '1000+'],
+  vecchiaia: ['0', '100', '150', '250', '400+']
 };
 
 export function densityStops(mode, isDark) {

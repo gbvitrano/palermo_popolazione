@@ -69,6 +69,15 @@ function buildDoughnutLegendHTML(labels, data, colors) {
   }).join('');
 }
 
+// Riconosce le etichette maschili/femminili delle serie ("Maschi", "Occupati (M)",
+// "Occupati maschi"...) per riusare gli stessi colori del grafico popolazione per
+// sesso (torta/piramide) anche nelle classifiche HTML.
+function genderFillColor(label) {
+  if (/masch|\(m\)$/i.test(label)) return DATA_COLORS.male;
+  if (/femmin|\(f\)$/i.test(label)) return DATA_COLORS.female;
+  return null;
+}
+
 // Classifica HTML: righe numerate ordinate per valore decrescente, con mini-barra
 // comparativa — sostituisce il grafico a barre per i topic a serie singola.
 // La riga di riferimento (popolazione/stranieri totale), se presente, resta fissa
@@ -90,15 +99,44 @@ function buildRankingListHTML(labels, data, referenceTotal, referenceLabel, shar
       </div>`
     : '';
 
-  const dataRows = sorted.map((r, i) => `
+  const dataRows = sorted.map((r, i) => {
+    const color = genderFillColor(r.label);
+    const fillStyle = `width:${Math.round((r.value / maxValue) * 100)}%${color ? `;background:${color}` : ''}`;
+    return `
       <div class="rank-row">
         <span class="rank-num">${i + 1}</span>
         <span class="rank-label">${r.label}</span>
-        <span class="rank-track"><span class="rank-fill" style="width:${Math.round((r.value / maxValue) * 100)}%"></span></span>
+        <span class="rank-track"><span class="rank-fill" style="${fillStyle}"></span></span>
         <span class="rank-value">${r.value.toLocaleString('it-IT')}</span>
-      </div>`).join('');
+      </div>`;
+  }).join('');
 
   return referenceRow + dataRows;
+}
+
+// Card "indice" (valore singolo derivato, es. indice di vecchiaia): numero in
+// evidenza più due righe di dettaglio in stile classifica (stesse .rank-row).
+function buildIndexCardHTML(aggregation) {
+  const under = aggregation.pop0_14 ?? 0;
+  const over = aggregation.pop65 ?? 0;
+  const value = aggregation.indexValue;
+  const maxValue = Math.max(under, over, 1);
+  const valueText = value == null ? 'n.d.' : value.toLocaleString('it-IT', { maximumFractionDigits: 1 });
+  return `
+    <div class="index-value">${valueText}</div>
+    <div class="index-caption">over 65 ogni 100 under 15</div>
+    <div class="rank-row rank-reference">
+      <span class="rank-num"></span>
+      <span class="rank-label">Pop. 0-14 anni</span>
+      <span class="rank-track"><span class="rank-fill" style="width:${Math.round((under / maxValue) * 100)}%;background:${DATA_COLORS.other}"></span></span>
+      <span class="rank-value">${under.toLocaleString('it-IT')}</span>
+    </div>
+    <div class="rank-row rank-reference">
+      <span class="rank-num"></span>
+      <span class="rank-label">Pop. 65+ anni</span>
+      <span class="rank-track"><span class="rank-fill" style="width:${Math.round((over / maxValue) * 100)}%;background:${DATA_COLORS.reference}"></span></span>
+      <span class="rank-value">${over.toLocaleString('it-IT')}</span>
+    </div>`;
 }
 
 // Stima larghezza in px di un'etichetta numerica per decidere se entra nello spazio disponibile.
@@ -232,6 +270,12 @@ export class ChartController {
         referenceLabel,
         sharedMax
       );
+      return;
+    }
+
+    if (topic.chartType === 'index') {
+      const cardEl = this.itemEl.querySelector('.index-card');
+      cardEl.innerHTML = buildIndexCardHTML(aggregation);
       return;
     }
 

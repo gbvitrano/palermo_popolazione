@@ -25,6 +25,11 @@ const AGE_BANDS_STRANIERI = [
   { bandLabel: '65+',   male: 'ST27', female: 'ST30' }
 ];
 
+// Campi delle fasce 0-14 e 65+ (indice di vecchiaia = pop. 65+ ogni 100 pop. 0-14),
+// ricavati dalle stesse fasce quinquennali della piramide età-sesso.
+const VECCHIAIA_UNDER_FIELDS = AGE_BANDS.slice(0, 3).flatMap(b => [b.male, b.female]);
+const VECCHIAIA_OVER_FIELDS = AGE_BANDS.slice(13).flatMap(b => [b.male, b.female]);
+
 // Ordine di visualizzazione dei gruppi nel pannello Argomenti (accordion).
 export const TOPIC_GROUPS = ['Popolazione', 'Stranieri', 'Istruzione & lavoro'];
 
@@ -74,6 +79,14 @@ export const TOPICS = {
       { field: 'ST32', label: 'Occupati (M)' },
       { field: 'ST33', label: 'Occupate (F)' }
     ]
+  },
+  indice_vecchiaia: {
+    group: 'Popolazione',
+    label: 'Indice di vecchiaia',
+    description: 'Popolazione di 65 anni e più ogni 100 residenti di 0-14 anni (ISTAT P30-P32, P43-P45, P67-P69, P80-P82).',
+    chartType: 'index',
+    underFields: VECCHIAIA_UNDER_FIELDS,
+    overFields: VECCHIAIA_OVER_FIELDS
   },
   piramide_eta: {
     group: 'Popolazione',
@@ -175,6 +188,18 @@ function sumField(record, field) {
   return typeof value === 'number' ? value : 0;
 }
 
+// Indice di vecchiaia per sezione censuaria (mappa, livello "Indice di vecchiaia"):
+// stessa formula della card, calcolata sezione per sezione anziché sulla zona A/B.
+export function computeVecchiaiaById(records, idField = 'SEZ21_ID') {
+  const byId = new Map();
+  for (const record of records) {
+    const under = VECCHIAIA_UNDER_FIELDS.reduce((sum, field) => sum + sumField(record, field), 0);
+    const over = VECCHIAIA_OVER_FIELDS.reduce((sum, field) => sum + sumField(record, field), 0);
+    byId.set(record[idField], under > 0 ? Math.round((over / under) * 1000) / 10 : null);
+  }
+  return byId;
+}
+
 // Selezione delle sezioni di una zona: Map SEZ21_ID -> peso (0–1], cioè la quota della
 // sezione che cade nella zona (js/dasimetria.js). Un array di id vale peso 1 per tutti
 // (inclusione per centroide).
@@ -202,6 +227,22 @@ export function aggregateTopic(records, selection, topicKey, idField = 'SEZ21_ID
   totalPopulation = Math.round(totalPopulation);
 
   const useStranieri = filterStranieri && topicKey !== 'stranieri';
+
+  if (topic.chartType === 'index') {
+    const under = topic.underFields.reduce((sum, field) => sum + total(field), 0);
+    const over = topic.overFields.reduce((sum, field) => sum + total(field), 0);
+    const value = under > 0 ? Math.round((over / under) * 1000) / 10 : null;
+    return {
+      labels: ['Indice di vecchiaia'],
+      datasets: [{ label: 'Indice di vecchiaia', data: [value ?? 0] }],
+      pop0_14: under,
+      pop65: over,
+      indexValue: value,
+      missingCount,
+      totalPopulation,
+      filtered: false
+    };
+  }
 
   if (topic.chartType === 'pyramid') {
     const ageBands = (useStranieri && topic.stranieriAgeBands) || topic.ageBands;

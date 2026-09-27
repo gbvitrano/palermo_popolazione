@@ -18,6 +18,14 @@ function densityExpression(mode, isDark) {
   return ['case', ['>', ['coalesce', ['get', 'pop_stim'], 0], 0], ramp, EDIFICATO_NEUTRAL];
 }
 
+// Indice di vecchiaia: a differenza degli altri livelli non è una proprietà cotta nelle
+// tile ma un feature-state impostato a runtime (setVecchiaiaIndex) dagli stessi dati del
+// pannello Argomenti — nessuna sezione con pop. 0-14 pari a 0 resta neutra (indice n.d.).
+function vecchiaiaExpression(isDark) {
+  const ramp = ['interpolate', ['linear'], ['feature-state', 'indiceVecchiaia'], ...densityStops('vecchiaia', isDark).flat()];
+  return ['case', ['==', ['feature-state', 'indiceVecchiaia'], null], EDIFICATO_NEUTRAL, ramp];
+}
+
 function buildEdificatoColorExpression(mode, isDark) {
   return [
     'case',
@@ -53,6 +61,9 @@ export class MapModule {
     this.elevazioneVisible = false;
     this.puntiVisible = false;
     this.isDarkTheme = false;
+    // Map SEZ21_ID -> indice di vecchiaia (o null se n.d.), tenuta qui per ri-applicare
+    // i feature-state dopo un reload dello style (setBaseTheme li azzera come 'inSpot').
+    this.vecchiaiaValues = null;
   }
 
   init(isDark = false) {
@@ -144,7 +155,7 @@ export class MapModule {
           paint: { 'raster-opacity': 0.7 }
         });
 
-        this.map.addSource('sezioni', { type: 'vector', url: `pmtiles://${PMTILES_URL}` });
+        this.map.addSource('sezioni', { type: 'vector', url: `pmtiles://${PMTILES_URL}`, promoteId: 'SEZ21_ID' });
 
         this.map.addLayer({
           id: 'sezioni-fill',
@@ -281,6 +292,7 @@ export class MapModule {
       this._restoreLayerState();
       this._restoreSpotHighlight();
       this._restoreTerritorioOutline();
+      this._applyVecchiaiaFeatureState();
     });
   }
 
@@ -372,10 +384,31 @@ export class MapModule {
   }
 
 
+  // 'vecchiaia' colora i poligoni sezione (sezioni-fill), non gli edifici: l'indice non
+  // varia da un edificio all'altro della stessa sezione, quindi estruderlo sarebbe
+  // ridondante e nasconderebbe il livello sotto gli edifici sempre visibili.
   setDensityMode(mode) {
     this.densityMode = mode;
-    this.map.setPaintProperty('edificato-fill', 'fill-extrusion-color', buildEdificatoColorExpression(mode, this.isDarkTheme));
-    this.map.setLayoutProperty('sezioni-fill', 'visibility', mode === 'none' ? 'visible' : 'none');
+    const edificatoMode = mode === 'vecchiaia' ? 'none' : mode;
+    this.map.setPaintProperty('edificato-fill', 'fill-extrusion-color', buildEdificatoColorExpression(edificatoMode, this.isDarkTheme));
+    this.map.setLayoutProperty('sezioni-fill', 'visibility', mode === 'none' || mode === 'vecchiaia' ? 'visible' : 'none');
+    this.map.setPaintProperty('sezioni-fill', 'fill-color', mode === 'vecchiaia' ? vecchiaiaExpression(this.isDarkTheme) : sezioniColors(this.isDarkTheme).fill);
+    this.map.setPaintProperty('sezioni-fill', 'fill-opacity', mode === 'vecchiaia' ? 0.55 : 0.15);
+  }
+
+  // records: array di indicatori (stesso sectionsRecords del pannello Argomenti).
+  // Da chiamare una volta al caricamento dati e ad ogni cambio dataset (2021/2023).
+  setVecchiaiaIndex(valuesById) {
+    this.vecchiaiaValues = valuesById;
+    this._applyVecchiaiaFeatureState();
+  }
+
+  _applyVecchiaiaFeatureState() {
+    if (!this.vecchiaiaValues) return;
+    for (const [id, value] of this.vecchiaiaValues) {
+      if (id == null) continue;
+      this.map.setFeatureState({ source: 'sezioni', sourceLayer: 'sezioni', id }, { indiceVecchiaia: value });
+    }
   }
 
   toggleSezioni() {

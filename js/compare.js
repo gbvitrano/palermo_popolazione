@@ -14,6 +14,7 @@ let controllerCurr = null;
 
 function cardBodyHTML(chartType) {
   if (chartType === 'bar') return '<div class="ranking-list"></div>';
+  if (chartType === 'index') return '<div class="index-card"></div>';
   return `<div class="chart-wrapper"><canvas></canvas></div>${chartType === 'doughnut' ? '<div class="doughnut-legend"></div>' : ''}`;
 }
 
@@ -56,7 +57,13 @@ export function openCompareModal({ topicKey, sectionIds, filterStranieri, record
   const rows = topic.chartType === 'pyramid'
     ? aggCurr.labels.flatMap((label, i) => aggCurr.datasets.map((ds, di) =>
         diffRowHTML(`${label} · ${ds.label}`, aggPrev.datasets[di].data[i], ds.data[i])))
-    : aggCurr.labels.map((label, i) => diffRowHTML(label, aggPrev.datasets[0].data[i], aggCurr.datasets[0].data[i]));
+    : topic.chartType === 'index'
+      ? [
+          diffRowHTML('Pop. 0-14 anni', aggPrev.pop0_14, aggCurr.pop0_14),
+          diffRowHTML('Pop. 65+ anni', aggPrev.pop65, aggCurr.pop65),
+          diffRowHTML('Indice di vecchiaia', aggPrev.datasets[0].data[0], aggCurr.datasets[0].data[0])
+        ]
+      : aggCurr.labels.map((label, i) => diffRowHTML(label, aggPrev.datasets[0].data[i], aggCurr.datasets[0].data[i]));
 
   const trend = computeTrend(aggPrev, aggCurr);
   const totalRow = trend.pct == null

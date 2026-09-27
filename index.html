@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#d9731a">
   <title>Palermo — Esplorazione demografica a raggio mobile</title>
-  <meta name="description" content="Mappa interattiva della popolazione di Palermo: esplora i dati del Censimento ISTAT 2021 per sezione censuaria con un raggio mobile, confronta due zone, disegna aree personalizzate e analizza piramide d'età, cittadinanza e altimetria DTM 5m.">
-  <meta name="keywords" content="Palermo, popolazione, demografia, censimento, ISTAT 2021, sezioni censuarie, mappa interattiva, circoscrizioni, quartieri, UPL, stranieri, piramide età, DTM, open data, OpenDataSicilia, MapLibre">
+  <meta name="description" content="Mappa interattiva della popolazione di Palermo: esplora i dati del Censimento ISTAT 203 per sezione censuaria con un raggio mobile, confronta due zone, disegna aree personalizzate e analizza piramide d'età, cittadinanza e altimetria DTM 5m.">
+  <meta name="keywords" content="Palermo, popolazione, demografia, censimento, ISTAT 203, sezioni censuarie, mappa interattiva, circoscrizioni, quartieri, UPL, stranieri, piramide età, DTM, open data, OpenDataSicilia, MapLibre">
   <meta name="author" content="Giovan Battista Vitrano per OpenDataSicilia.it">
   <meta name="robots" content="index,follow">
   <link rel="icon" href="img/favicon.ico" sizes="any">
@@ -20,7 +20,7 @@
   <meta property="og:type" content="website">
   <meta property="og:locale" content="it_IT">
   <meta property="og:title" content="Palermo — Esplorazione demografica a raggio mobile | 2026 by @opendatasicilia">
-  <meta property="og:description" content="Mappa interattiva della popolazione di Palermo: esplora i dati del Censimento ISTAT 2021 per sezione censuaria con un raggio mobile, confronta due zone, disegna aree personalizzate e analizza piramide d'età, cittadinanza e altimetria DTM 5m.">
+  <meta property="og:description" content="Mappa interattiva della popolazione di Palermo: esplora i dati del Censimento ISTAT 203 per sezione censuaria con un raggio mobile, confronta due zone, disegna aree personalizzate e analizza piramide d'età, cittadinanza e altimetria DTM 5m.">
   <meta property="og:image" content="https://gbvitrano.github.io/palermo_popolazione/img/social_card.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="750">
@@ -28,7 +28,7 @@
   <meta property="twitter:domain" content="palermohub.opendatasicilia.it">
   <meta property="twitter:url" content="https://gbvitrano.github.io/palermo_popolazione/">
   <meta name="twitter:title" content="Palermo — Esplorazione demografica a raggio mobile | 2026 by @opendatasicilia">
-  <meta name="twitter:description" content="Mappa interattiva della popolazione di Palermo: esplora i dati del Censimento ISTAT 2021 per sezione censuaria con un raggio mobile, confronta due zone, disegna aree personalizzate e analizza piramide d'età, cittadinanza e altimetria DTM 5m.">
+  <meta name="twitter:description" content="Mappa interattiva della popolazione di Palermo: esplora i dati del Censimento ISTAT 203 per sezione censuaria con un raggio mobile, confronta due zone, disegna aree personalizzate e analizza piramide d'età, cittadinanza e altimetria DTM 5m.">
   <meta name="twitter:image" content="https://gbvitrano.github.io/palermo_popolazione/img/social_card.jpg">
 
   <!-- Connessioni anticipate: CDN librerie e tile basemap -->
@@ -60,7 +60,7 @@
     <div class="app-loader-card">
       <img class="app-loader-logo" src="img/favicon.png" alt="" width="44" height="44">
       <div class="app-loader-title">Palermo — Esplorazione demografica</div>
-      <div class="app-loader-sub">Censimento ISTAT 2021 per sezione</div>
+      <div class="app-loader-sub">Censimento ISTAT 203 per sezione</div>
       <ul class="app-loader-steps">
         <li data-step="dati" data-state="active"><span class="step-icon" aria-hidden="true"></span><span>Dati del censimento</span><span class="step-detail"></span></li>
         <li data-step="mappa" data-state="active"><span class="step-icon" aria-hidden="true"></span><span>Mappa e confini</span><span class="step-detail"></span></li>
@@ -220,7 +220,7 @@
           <h3>In sintesi</h3>
           <p>
             La mappa stima il profilo della popolazione che risiede in un'area scelta liberamente, sommando i dati
-            delle <strong>sezioni di censimento ISTAT 2021</strong> che ricadono al suo interno. Tutti i calcoli
+            delle <strong>sezioni di censimento ISTAT 203</strong> che ricadono al suo interno. Tutti i calcoli
             avvengono nel browser, in tempo reale, su dati preparati in anticipo: non c'è un server che elabora
             le richieste e nessun dato dell'utente viene inviato altrove.
           </p>
@@ -1009,6 +1009,7 @@
       <button type="button" id="btn-density-popolazione" class="density-btn">Densità popolazione</button>
       <button type="button" id="btn-density-edifici" class="density-btn">Densità edifici</button>
       <button type="button" id="btn-density-dasimetrica" class="density-btn" title="Residenti ridistribuiti sugli edifici in base a impronta × piani">Dasimetrica</button>
+      <button type="button" id="btn-density-vecchiaia" class="density-btn" title="Popolazione di 65 anni e più ogni 100 residenti di 0-14 anni, per sezione censuaria">Indice di vecchiaia</button>
     </div>
     <button type="button" id="btn-toggle-punti" class="density-btn" title="Residenti italiani e stranieri: 1 punto = 10, da zoom 14 1 punto = 1">One-person-one-dot</button>
     <button type="button" id="btn-toggle-elevazione" class="density-btn">Elevazione</button>

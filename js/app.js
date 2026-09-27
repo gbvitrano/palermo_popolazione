@@ -3,7 +3,7 @@ import { MapModule } from './map.js';
 import { ProbeController } from './probe.js';
 import { PolygonController } from './polygon.js';
 import { buildCentroidIndex, filterWithinZone, zoneBBox, zoneCenter, ringAreaSqMeters } from './geometry.js';
-import { TOPICS, TOPIC_GROUPS, aggregateTopic, computeTrend } from './topics.js';
+import { TOPICS, TOPIC_GROUPS, aggregateTopic, computeTrend, computeVecchiaiaById } from './topics.js';
 import { ChartController, applyChartTheme, exportChartPng } from './charts.js';
 import { openCompareModal } from './compare.js';
 import { densityStops, densityLegendStops, confiniStyle, sezioniColors, ELEVATION_STOPS, EDIFICATO_NEUTRAL, puntiColors, CONFINI_LABEL_SINGULAR } from './palette.js';
@@ -160,7 +160,7 @@ function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeE
       if (!activeTopics.has(key) || controllers.has(key)) continue;
       const itemEl = document.createElement('div');
       itemEl.className = `chart-item ${TOPICS[key].chartType}`.trim();
-      const isCanvas = TOPICS[key].chartType !== 'bar';
+      const isCanvas = ['doughnut', 'pyramid'].includes(TOPICS[key].chartType);
       const infoId = `chart-info-${zoneKey}-${key}`;
       itemEl.innerHTML = `
         <div class="chart-item-head">
@@ -185,7 +185,9 @@ function createTopicChartPanel({ chartListEl, chartTitleEl, kpiEl, missingBadgeE
         <div class="chart-item-card">
           ${TOPICS[key].chartType === 'bar'
             ? '<div class="ranking-list"></div>'
-            : `<div class="chart-wrapper"><canvas></canvas></div>${TOPICS[key].chartType === 'doughnut' ? '<div class="doughnut-legend"></div>' : ''}`}
+            : TOPICS[key].chartType === 'index'
+              ? '<div class="index-card"></div>'
+              : `<div class="chart-wrapper"><canvas></canvas></div>${TOPICS[key].chartType === 'doughnut' ? '<div class="doughnut-legend"></div>' : ''}`}
         </div>
       `;
       itemEl.querySelector('.chart-item-actions').addEventListener('click', (e) => {
@@ -342,7 +344,8 @@ function offsetEastMeters(center, meters) {
 const DENSITY_TITLES = {
   popolazione: 'Densità popolazione (ab/ha)',
   edifici: 'Copertura edifici (%)',
-  dasimetrica: 'Residenti stimati per ettaro di impronta'
+  dasimetrica: 'Residenti stimati per ettaro di impronta',
+  vecchiaia: 'Indice di vecchiaia (65+ ogni 100 under 15)'
 };
 
 // Rampa continua (interpolate lineare in map.js) → barra a gradiente con gli
@@ -370,6 +373,10 @@ function renderLegend() {
     if (densityMode === 'dasimetrica') {
       legendContentEl.insertAdjacentHTML('beforeend',
         `<div class="legend-row"><span class="legend-swatch" style="background:${EDIFICATO_NEUTRAL}"></span><span>Nessun residente stimato</span></div>`);
+    }
+    if (densityMode === 'vecchiaia') {
+      legendContentEl.insertAdjacentHTML('beforeend',
+        `<div class="legend-row"><span class="legend-swatch" style="background:${EDIFICATO_NEUTRAL}"></span><span>Indice non disponibile (nessun residente 0-14)</span></div>`);
     }
   } else if (spotActive) {
     const title = document.createElement('div');
@@ -960,6 +967,7 @@ async function bootstrap() {
   rankStats = aggregateAllLevels(sectionsRecords);
   centroidIndex = buildCentroidIndex(sectionsRecords, 'SEZ21_ID');
   p1ById = new Map(sectionsRecords.map(r => [r.SEZ21_ID, r.P1 ?? null]));
+  mapModule.setVecchiaiaIndex(computeVecchiaiaById(sectionsRecords));
   // non blocca l'avvio: all'arrivo ricalcola le zone già disegnate
   loadEdificiIndex(EDIFICI_ZONA_JSON_URL).then(index => {
     edificiIndex = index;
@@ -1060,7 +1068,8 @@ async function bootstrap() {
   const densityButtons = {
     popolazione: document.getElementById('btn-density-popolazione'),
     edifici: document.getElementById('btn-density-edifici'),
-    dasimetrica: document.getElementById('btn-density-dasimetrica')
+    dasimetrica: document.getElementById('btn-density-dasimetrica'),
+    vecchiaia: document.getElementById('btn-density-vecchiaia')
   };
   for (const [mode, btn] of Object.entries(densityButtons)) {
     btn.addEventListener('click', () => {
