@@ -1619,6 +1619,48 @@ body:has(#info-panel.open) .map-stack {
   flex-shrink: 0;
 }
 
+.legend-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.legend-info-btn {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 11px;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.legend-info-btn:hover,
+.legend-info-btn[aria-expanded="true"] {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+
+.legend-info-box {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 6px 8px;
+  margin: -2px 0 6px;
+  line-height: 1.4;
+}
+
 .panel-bottom {
   bottom: 28px;
   left: 50%;

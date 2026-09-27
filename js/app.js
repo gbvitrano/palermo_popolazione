@@ -344,9 +344,48 @@ function offsetEastMeters(center, meters) {
 const DENSITY_TITLES = {
   popolazione: 'Densità popolazione (ab/ha)',
   edifici: 'Copertura edifici (%)',
-  dasimetrica: 'Residenti stimati per ettaro di impronta',
-  vecchiaia: 'Indice di vecchiaia (65+ ogni 100 under 15)'
+  dasimetrica: 'Residenti per ettaro (persone/ha)',
+  vecchiaia: 'Indice di vecchiaia (rapporto)'
 };
+
+// Testi del pulsantino info (ⓘ) di ogni sezione della legenda: spiegano cosa
+// misura il numero/colore, non solo come si chiama.
+const LEGEND_INFO = {
+  popolazione: 'Numero stimato di abitanti per ettaro (10.000 m²) di superficie della sezione censuaria. Valore medio sull\'intera sezione, non solo sull\'area costruita.',
+  edifici: 'Percentuale di suolo coperta da edifici rispetto alla superficie totale della sezione: 0% = nessun edificio, 100% = suolo completamente edificato.',
+  dasimetrica: 'Residenti stimati per ettaro di impronta edificata, cioè solo sull\'area effettivamente occupata dagli edifici (non su tutta la sezione). Il quadratino grigio indica sezioni senza residenti stimati.',
+  vecchiaia: 'Numero di residenti con 65 anni o più ogni 100 residenti con meno di 15 anni. 100 = tanti anziani quanti giovani; sopra 100 = più anziani che giovani. Il quadratino grigio indica sezioni senza under-15 (indice non calcolabile).',
+  confini: 'Confini amministrativi disegnati sulla mappa (circoscrizioni, quartieri, ecc.), distinti per stile e spessore della linea.',
+  punti: 'Ogni punto rappresenta un gruppo di residenti stimati: 10 persone fino allo zoom 14, poi 1 persona per punto oltre quello zoom. Colore = cittadinanza italiana o straniera.',
+  elevazione: 'Colore del terreno in base alla sua altitudine, dal modello digitale di elevazione.'
+};
+
+// Titolo + pulsante ⓘ che apre/chiude il testo esplicativo in LEGEND_INFO.
+// Il box info è un elemento sibling separato (non dentro il bottone) così il
+// layout della legenda resta invariato quando è chiuso.
+function appendLegendTitle(container, text, infoKey) {
+  const row = document.createElement('div');
+  row.className = 'panel-subheader legend-title-row';
+  const label = document.createElement('span');
+  label.textContent = text;
+  row.appendChild(label);
+  if (LEGEND_INFO[infoKey]) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'legend-info-btn';
+    btn.setAttribute('aria-label', `Cosa significa: ${text}`);
+    btn.setAttribute('aria-expanded', 'false');
+    btn.textContent = 'ⓘ';
+    row.appendChild(btn);
+  }
+  container.appendChild(row);
+  if (LEGEND_INFO[infoKey]) {
+    const info = document.createElement('div');
+    info.className = 'legend-info-box hidden';
+    info.textContent = LEGEND_INFO[infoKey];
+    container.appendChild(info);
+  }
+}
 
 // Rampa continua (interpolate lineare in map.js) → barra a gradiente con gli
 // stop nella stessa posizione proporzionale che hanno sulla mappa.
@@ -365,10 +404,7 @@ function renderLegend() {
   legendContentEl.innerHTML = '';
 
   if (densityMode !== 'none') {
-    const title = document.createElement('div');
-    title.className = 'panel-subheader';
-    title.textContent = DENSITY_TITLES[densityMode];
-    legendContentEl.appendChild(title);
+    appendLegendTitle(legendContentEl, DENSITY_TITLES[densityMode], densityMode);
     legendContentEl.insertAdjacentHTML('beforeend', gradientLegendHTML(densityMode));
     if (densityMode === 'dasimetrica') {
       legendContentEl.insertAdjacentHTML('beforeend',
@@ -379,18 +415,12 @@ function renderLegend() {
         `<div class="legend-row"><span class="legend-swatch" style="background:${EDIFICATO_NEUTRAL}"></span><span>Indice non disponibile (nessun residente 0-14)</span></div>`);
     }
   } else if (spotActive) {
-    const title = document.createElement('div');
-    title.className = 'panel-subheader';
-    title.textContent = 'Densità popolazione nella zona (ab/ha)';
-    legendContentEl.appendChild(title);
+    appendLegendTitle(legendContentEl, 'Densità popolazione nella zona (ab/ha)', 'popolazione');
     legendContentEl.insertAdjacentHTML('beforeend', gradientLegendHTML('popolazione'));
   }
 
   if (confiniActiveLevels.size > 0) {
-    const title = document.createElement('div');
-    title.className = 'panel-subheader';
-    title.textContent = 'Confini';
-    legendContentEl.appendChild(title);
+    appendLegendTitle(legendContentEl, 'Confini', 'confini');
     for (const level of Object.keys(CONFINI_LABELS).filter(l => confiniActiveLevels.has(l))) {
       const style = confiniStyle(level, isDarkTheme());
       const row = document.createElement('div');
@@ -401,10 +431,7 @@ function renderLegend() {
   }
 
   if (puntiVisible) {
-    const title = document.createElement('div');
-    title.className = 'panel-subheader';
-    title.textContent = 'Residenti (1 punto = 10, da zoom 14 = 1)';
-    legendContentEl.appendChild(title);
+    appendLegendTitle(legendContentEl, 'Residenti (1 punto = 10, da zoom 14 = 1)', 'punti');
     const colors = puntiColors(isDarkTheme());
     for (const [key, label] of [['italiani', 'Italiani'], ['stranieri', 'Stranieri']]) {
       legendContentEl.insertAdjacentHTML('beforeend',
@@ -413,10 +440,7 @@ function renderLegend() {
   }
 
   if (elevazioneVisible) {
-    const title = document.createElement('div');
-    title.className = 'panel-subheader';
-    title.textContent = 'Elevazione';
-    legendContentEl.appendChild(title);
+    appendLegendTitle(legendContentEl, 'Elevazione', 'elevazione');
     for (const stop of ELEVATION_STOPS) {
       const row = document.createElement('div');
       row.className = 'legend-row';
@@ -427,6 +451,17 @@ function renderLegend() {
 
   legendPanelEl.classList.toggle('hidden', densityMode === 'none' && confiniActiveLevels.size === 0 && !spotActive && !elevazioneVisible && !puntiVisible);
 }
+
+// Delegato: il contenuto della legenda viene ricreato a ogni renderLegend(),
+// quindi il listener va sul contenitore stabile, non sui singoli pulsanti ⓘ.
+legendContentEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('.legend-info-btn');
+  if (!btn) return;
+  const box = btn.closest('.legend-title-row').nextElementSibling;
+  const willShow = box.classList.contains('hidden');
+  box.classList.toggle('hidden', !willShow);
+  btn.setAttribute('aria-expanded', String(willShow));
+});
 
 function renderConfiniButtons(mapModule) {
   confiniButtonsEl.innerHTML = '';
