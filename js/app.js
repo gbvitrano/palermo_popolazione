@@ -1123,6 +1123,7 @@ async function bootstrap() {
   });
 
   setupMapToolbar(mapModule);
+  setupPanelBottomDragScroll();
 
   const btnTogglePunti = document.getElementById('btn-toggle-punti');
   btnTogglePunti.addEventListener('click', () => {
@@ -1210,6 +1211,46 @@ function setupCompass(mapModule) {
   compass.addEventListener('click', () => mapModule.resetNorth());
   update();
   return update;
+}
+
+// Trascinamento con il mouse per la barra livelli (.panel-bottom): su touch
+// lo scroll orizzontale funziona già nativamente, qui serve solo per il mouse.
+function setupPanelBottomDragScroll() {
+  const el = document.querySelector('.panel-bottom');
+  if (!el) return;
+  let dragging = false;
+  let dragged = false;
+  let startX = 0;
+  let startScroll = 0;
+
+  el.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch') return;
+    dragging = true;
+    dragged = false;
+    startX = e.clientX;
+    startScroll = el.scrollLeft;
+    el.setPointerCapture(e.pointerId);
+  });
+
+  el.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    if (Math.abs(dx) > 3) dragged = true;
+    el.scrollLeft = startScroll - dx;
+  });
+
+  const stopDrag = () => { dragging = false; };
+  el.addEventListener('pointerup', stopDrag);
+  el.addEventListener('pointercancel', stopDrag);
+  el.addEventListener('pointerleave', stopDrag);
+
+  // Un trascinamento non deve far scattare il click del pulsante sotto il cursore.
+  el.addEventListener('click', (e) => {
+    if (dragged) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
 }
 
 function setupMapToolbar(mapModule) {

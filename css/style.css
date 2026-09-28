@@ -298,6 +298,7 @@ html, body {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-width: thin;
 }
 
 .chart-item {
@@ -536,7 +537,7 @@ html, body {
 
 #ods-logo {
   position: fixed;
-  bottom: 46px;
+  bottom: 96px; /* sopra la panel-bottom: stesso margine riservato da .map-stack */
   right: calc(16px + var(--inset-right));
   z-index: 10;
   transition: right 0.2s ease;
@@ -1661,17 +1662,32 @@ body:has(#info-panel.open) .map-stack {
   line-height: 1.4;
 }
 
+/* Si centra nello spazio libero fra i pannelli laterali, stesso schema di
+   #info-panel/.map-stack (--inset-left/--inset-right, scritti da
+   syncPanelInsets in app.js). Così non finisce mai sotto i pannelli, quali
+   che siano le loro larghezze (anche da resize manuale). Se lo spazio
+   libero resta comunque troppo stretto, i pulsanti scorrono in orizzontale
+   invece di traboccare. */
 .panel-bottom {
+  --inset-free: calc(100vw - var(--inset-left) - var(--inset-right));
   bottom: 28px;
-  left: 50%;
+  left: calc(var(--inset-left) + var(--inset-free) / 2);
   transform: translateX(-50%);
+  max-width: calc(var(--inset-free) - 32px);
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 6px;
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  transition: left 0.2s ease;
+  cursor: grab;
 }
+
+.panel-bottom:active { cursor: grabbing; }
+.panel-bottom::-webkit-scrollbar { display: none; }
 
 /* Scelta esclusiva (densità) separata dal toggle indipendente (elevazione) */
 .density-group {
@@ -2772,9 +2788,23 @@ button.active {
   .panel-resizer { display: none; }
 
   .panel-bottom {
-    max-width: calc(100vw - 32px);
-    overflow-x: auto;
-    scrollbar-width: none;
+    max-width: calc(var(--inset-free) - 32px);
+  }
+
+  /* Pannello stretto: i controlli sopra (argomenti, territorio, strumenti)
+     possono lasciare pochissima altezza a #chart-list. Fa scorrere l'intero
+     pannello invece del solo elenco grafici (stesso fix di 640px sotto, ma
+     senza il layout a sheet dal basso). */
+  .panel-left .panel-scroll,
+  .panel-right .panel-scroll {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .chart-panel-body,
+  #chart-list {
+    flex: none;
+    overflow: visible;
   }
 }
 
