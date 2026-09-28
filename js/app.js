@@ -18,6 +18,8 @@ const probeHintEl = document.getElementById('probe-hint');
 const chartPanelEl = document.getElementById('chart-panel');
 const chartPanelTabEl = document.getElementById('chart-panel-tab');
 const chartPanelResizerEl = chartPanelEl.querySelector('.panel-resizer');
+const chartPanelScrollEl = document.getElementById('chart-panel-scroll');
+const chartPanelCollapsibleEl = document.getElementById('chart-panel-collapsible');
 const chartTitleEl = document.getElementById('chart-title');
 const chartListEl = document.getElementById('chart-list');
 const kpiEl = document.getElementById('kpi-population');
@@ -598,6 +600,10 @@ function showPanel(panelEl) {
     const other = panelEl === chartPanelEl ? puntoPanelEl : chartPanelEl;
     other.classList.add('collapsed');
   }
+  if (panelEl === chartPanelEl) {
+    chartPanelCollapsibleEl?.classList.remove('collapsed');
+    document.getElementById('chart-panel-collapse-handle')?.setAttribute('aria-expanded', 'true');
+  }
   syncLayout();
 }
 
@@ -1149,6 +1155,7 @@ async function bootstrap() {
   });
 
   setupChartPanelControls();
+  setupChartPanelCollapse();
   setupPuntoPanelControls();
   setupInfoPanel();
   setupLegendToggle();
@@ -1423,6 +1430,80 @@ function setupGuideLightbox(panel) {
   });
 
   dialog.addEventListener('close', () => img.removeAttribute('src'));
+}
+
+// "Argomenti… Strumenti" si richiude non appena si scorre l'elenco grafici,
+// per lasciargli più spazio — su desktop come in modalità compatta. Riapre
+// scorrendo verso l'alto o tornando in cima.
+// Il contenitore che scorre davvero cambia con il breakpoint (css/style.css):
+// su desktop è #chart-list (flex:1, overflow-y:auto) a scorrere da solo,
+// mentre in compatto/mobile scorre l'intero #chart-panel-scroll. Si ascoltano
+// entrambi: quello non attivo nel breakpoint corrente non emette mai scroll.
+function setupChartPanelCollapse() {
+  // Quando si (dis)attiva "collapsed" il pannello si ridimensiona (transizione
+  // CSS ~250ms): la crescita/contrazione di #chart-list durante l'animazione
+  // sposta (clamp) il suo stesso scrollTop, che rigenera eventi 'scroll' e
+  // farebbe riaprire/richiudere in loop → il tremolio. Un cooldown condiviso
+  // (coprente tutti i trigger: scroll, rotellina, maniglia) ignora gli eventi
+  // scroll generati dall'animazione stessa, non dall'utente.
+  const COOLDOWN_MS = 280;
+  const collapseHandleEl = document.getElementById('chart-panel-collapse-handle');
+  const resyncFns = [];
+  let cooldown = false;
+
+  function setCollapsed(collapsed, { resetScroll = false } = {}) {
+    if (chartPanelCollapsibleEl.classList.contains('collapsed') === collapsed) return;
+    chartPanelCollapsibleEl.classList.toggle('collapsed', collapsed);
+    collapseHandleEl?.setAttribute('aria-expanded', String(!collapsed));
+    if (resetScroll) {
+      chartPanelScrollEl.scrollTop = 0;
+      chartListEl.scrollTop = 0;
+    }
+    cooldown = true;
+    setTimeout(() => {
+      cooldown = false;
+      resyncFns.forEach(fn => fn());
+    }, COOLDOWN_MS);
+  }
+
+  // Maniglia esplicita: serve quando sotto la collapsible c'è troppo poco
+  // contenuto per scrollare (niente evento 'scroll' → mai più riapribile
+  // automaticamente). Riporta anche lo scroll a 0 per non farla richiudere
+  // subito al primo evento scroll residuo.
+  collapseHandleEl?.addEventListener('click', () => setCollapsed(false, { resetScroll: true }));
+
+  // Rotellina/trackpad: stesso comando anche quando #chart-list non ha
+  // overflow (pochi grafici) e quindi non genera mai un evento 'scroll'.
+  // Giù → richiude; su → riapre, ma solo se si è già in cima (altrimenti si
+  // riaprirebbe mentre si scorre semplicemente in su fra i grafici).
+  chartPanelScrollEl.addEventListener('wheel', (e) => {
+    if (cooldown || Math.abs(e.deltaY) < 2) return;
+    if (e.deltaY > 0) {
+      setCollapsed(true);
+    } else if (chartPanelScrollEl.scrollTop <= 0 && chartListEl.scrollTop <= 0) {
+      setCollapsed(false);
+    }
+  }, { passive: true });
+
+  function watch(el) {
+    let lastTop = el.scrollTop;
+    resyncFns.push(() => { lastTop = el.scrollTop; });
+
+    el.addEventListener('scroll', () => {
+      if (cooldown) return;
+      const top = el.scrollTop;
+      if (top < 24) {
+        setCollapsed(false);
+      } else if (top - lastTop > 4) {
+        setCollapsed(true);
+      } else if (top - lastTop < -4) {
+        setCollapsed(false);
+      }
+      lastTop = top;
+    }, { passive: true });
+  }
+  watch(chartPanelScrollEl);
+  watch(chartListEl);
 }
 
 function setupChartPanelControls() {

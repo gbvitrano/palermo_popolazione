@@ -247,6 +247,52 @@ html, body {
   box-sizing: border-box;
 }
 
+/* Argomenti / Seleziona territorio / Strumenti: si richiude non appena si
+   scorre l'elenco grafici (vedi setupChartPanelCollapse in app.js), per
+   lasciare più spazio ai grafici — su desktop come in modalità compatta. */
+.chart-panel-collapsible {
+  flex-shrink: 0;
+  overflow: hidden;
+  max-height: 2000px;
+  opacity: 1;
+  transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease;
+}
+
+.chart-panel-collapsible.collapsed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Maniglia per riaprire "Argomenti…Strumenti": indispensabile quando sotto
+   c'è poco contenuto (es. una sola zona con pochi grafici) e quindi non c'è
+   nulla da scrollare per far scattare la riapertura automatica. */
+.chart-panel-collapse-handle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  flex-shrink: 0;
+  padding: 6px 0;
+  margin-bottom: 8px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.chart-panel-collapse-handle:hover {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+
+.chart-panel-collapsible.collapsed + .chart-panel-collapse-handle {
+  display: flex;
+}
+
 .panel-resizer {
   position: absolute;
   top: 0;

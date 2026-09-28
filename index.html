@@ -871,6 +871,7 @@
         <span id="chart-title">Analisi demografica</span>
       </div>
       <div class="chart-panel-body">
+        <div id="chart-panel-collapsible" class="chart-panel-collapsible">
         <div class="panel-subheader panel-subheader-first">Argomenti</div>
         <div id="topic-buttons"></div>
         <button type="button" id="btn-toggle-scale" class="switch hidden" role="switch" aria-checked="false"
@@ -941,6 +942,11 @@
           </button>
         </div>
         <hr class="panel-divider">
+        </div>
+        <button type="button" id="chart-panel-collapse-handle" class="chart-panel-collapse-handle" aria-controls="chart-panel-collapsible" aria-expanded="false" title="Mostra argomenti, territorio e strumenti" aria-label="Mostra argomenti, territorio e strumenti">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 15 12 9 18 15"/></svg>
+          <span>Argomenti, territorio, strumenti</span>
+        </button>
         <div id="kpi-population" class="kpi" aria-live="polite" aria-atomic="true"></div>
         <div id="missing-badge" class="badge hidden"></div>
         <div id="chart-list"></div>
